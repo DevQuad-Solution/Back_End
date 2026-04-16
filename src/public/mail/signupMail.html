@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Verify Your Email to Start Your Free Trial</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f5f5f5;
+        color: #333;
+        line-height: 1.6;
+      }
+      .container {
+        max-width: 600px;
+        margin: 20px auto;
+        background-color: #ffffff;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 20px;
+        border-bottom: 1px solid #eaeaea;
+      }
+      .logo {
+        width: 40px;
+        height: 40px;
+        object-fit: contain;
+      }
+      .website {
+        color: #666;
+        font-size: 14px;
+        text-decoration: none;
+      }
+      .content {
+        padding: 30px 25px;
+      }
+      .title {
+        font-size: 24px;
+        font-weight: 700;
+        margin-bottom: 20px;
+        color: #222;
+      }
+      .message {
+        margin-bottom: 25px;
+      }
+      .otp-container {
+        background-color: #f7f7f7;
+        border-radius: 8px;
+        padding: 20px;
+        text-align: center;
+        margin: 25px 0;
+        border: 1px solid #eaeaea;
+      }
+      .otp-code {
+        font-size: 32px;
+        font-weight: bold;
+        letter-spacing: 3px;
+        color: #e61919;
+      }
+      .benefits {
+        margin: 25px 0;
+        padding: 15px;
+        background-color: #f9f9f9;
+        border-left: 4px solid #e61919;
+      }
+      .benefit-item {
+        margin-bottom: 8px;
+      }
+      .expiry-note {
+        font-size: 13px;
+        color: #777;
+        margin-top: 15px;
+        font-style: italic;
+      }
+      .support-message {
+        margin-top: 30px;
+        padding-top: 20px;
+        border-top: 1px solid #eaeaea;
+        color: #666;
+        font-size: 14px;
+      }
+      .footer {
+        background-color: #f9f9f9;
+        padding: 20px;
+        text-align: center;
+        color: #777;
+        font-size: 13px;
+        border-top: 1px solid #eaeaea;
+      }
+      .footer a {
+        color: #555;
+        text-decoration: none;
+        margin: 0 10px;
+      }
+      .footer a:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div>
+          <img class="logo" src="cid:icon@skopoos.com" alt="M360 Logo" />
+        </div>
+        <a href="https://m360suites.com" class="website">
+          <div>M360suites.com</div>
+        </a>
+      </div>
+      <div class="content">
+        <div class="title">You're One Step Away From Your Free Trial!</div>
+        <div class="message">
+          <p>Hi {{firstName}},</p>
+          <p>Thank you for choosing M360 Suites! To activate your free trial and unlock premium features, please verify your email address using the verification code below:</p>
+        </div>
+        
+        <div class="otp-container">
+          <div class="otp-code">{{otp}}</div>
+        </div>
+        
+        <div class="expiry-note">
+          This verification code is valid for 10 minutes only.
+        </div>
+        
+        <div class="benefits">
+          <strong>Your free trial includes:</strong>
+          <ul>
+            <li class="benefit-item">Full access to all premium features</li>
+            <li class="benefit-item">Personalized dashboard and analytics</li>
+            <li class="benefit-item">Priority customer support</li>
+            <li class="benefit-item">No credit card required to start</li>
+          </ul>
+        </div>
+        
+        <div class="support-message">
+          Need help? Our support team is ready to assist you. Contact us at <a href="mailto:support@m360suites.com">support@m360suites.com</a>
+        </div>
+      </div>
+      <div class="footer">
+        <div>
+          &copy; M360 Suites. All rights reserved.
+          <div style="margin-top: 10px;">
+            <a href="https://m360suites.com">Visit our website</a> |
+            <a href="#">Download the app</a> |
+            <a href="#">Privacy Policy</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

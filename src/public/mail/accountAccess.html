@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Account Access Notification</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #f4f4f4;
+      }
+      a {
+        text-decoration: none;
+      }
+      .content {
+        background-color: #0077B61A;
+        padding: 10px;
+        padding-top: 20px;
+        padding-bottom: 40px;
+      }
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 20px;
+      }
+      .icon {
+        width: 30px;
+        height: 30px;
+        object-fit: contain;
+      }
+      .headerText {
+        font-size: 15px;
+        color: gray;
+      }
+      .mainBody {
+        margin-top: 20px;
+        padding-left: 20px;
+        padding-right: 20px;
+      }
+      .title {
+        font-size: 20px;
+        font-weight: 600;
+      }
+      .button {
+        background: #0077B6;
+        padding: 15px 30px;
+        border-radius: 8px;
+        color: white;
+        border: none;
+        cursor: pointer;
+      }
+      .footer {
+        padding: 10px 20px;
+        margin-top: 10px;
+      }
+      .highlight {
+        font-weight: bold;
+      }
+      .divider {
+        height: 1px;
+        background-color: #e0e0e0;
+        margin: 20px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="content">
+      <div class="header">
+        <div class="">
+          <img class="icon" src="cid:icon@dm360.com" alt="DM360 Logo" />
+        </div>
+        <a href="https://dm360.com">
+          <div class="headerText">DM360.com</div>
+        </a>
+      </div>
+      <div class="mainBody">
+        <div class="title">Account Access Notification</div>
+        <p>Hi {{firstName}},</p>
+        <p>
+          <span class="highlight">{{invitor}}</span> has given you access to
+          their account.
+        </p>
+        <p style="font-size: 12px; color: gray; font-weight: 300">
+          You can now manage products and services for
+          <span class="highlight">{{accountName}}</span> account.
+        </p>
+        <p style="color: gray; margin-top: 30px">
+          If you didn't request this access, please contact Customer Service at
+          <a href="mailto:dm360@support.com">dm360@support.com</a> immediately.
+        </p>
+        <p style="color: gray">
+          Take a moment to read our
+          <a href="#" class="highlight">Delegate Access Terms of Service</a>.
+        </p>
+        <div class="divider"></div>
+        <a href="{{accessUrl}}">
+          <button class="button">View Access →</button>
+        </a>
+      </div>
+    </div>
+    <div class="footer" style="text-align: center">
+      <div style="color: gray">
+        Please do not reply to this email. Emails sent to this address will not
+        be answered.
+      </div>
+      <div style="margin-top: 10px; color: rgb(35, 167, 255)">
+        &copy; DM360. All rights reserved.
+      </div>
+    </div>
+  </body>
+</html>
