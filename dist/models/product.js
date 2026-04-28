@@ -15,7 +15,7 @@ const productSchema = new mongoose_1.Schema({
     orders: { type: Number, default: 0 },
     revenue: { type: Number, default: 0 },
     status: { type: String, enum: ['Active', 'Inactive'], default: 'Inactive' },
-    createdBy: { type: mongoose_1.Types.ObjectId, ref: 'Admin', required: true },
+    createdBy: { type: mongoose_1.Types.ObjectId, ref: 'Admin' },
 }, { timestamps: true });
 const Product = (0, mongoose_1.model)('Product', productSchema);
 exports.Product = Product;

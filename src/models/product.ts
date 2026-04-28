@@ -30,7 +30,7 @@ const productSchema = new Schema(
     orders: { type: Number, default: 0 },
     revenue: { type: Number, default: 0 },
     status: { type: String, enum: ['Active', 'Inactive'], default: 'Inactive' },
-    createdBy: { type: Types.ObjectId, ref: 'Admin', required: true },
+    createdBy: { type: Types.ObjectId, ref: 'Admin' },
   },
   { timestamps: true },
 );
