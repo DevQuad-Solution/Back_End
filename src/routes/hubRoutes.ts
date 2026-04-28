@@ -1,13 +1,20 @@
 import { Router } from 'express';
-import { onboarding, resetPassword, sendCode, signin, signup, verifyCode } from '../controllers/auth/authControllers';
+import { authMiddleware } from '../middlewares/authMiddleware';
+import { requireRole } from '../middlewares/roleMiddleware';
+import {
+  fetchCitiesByState,
+  fetchHubsByStateAndCity,
+  fetchStates,
+  fetchHubRatings,
+  rateHub,
+} from '../controllers/hub/hubControllers';
 
 const route = Router();
 
-route.post('/auth/', signup);
-route.post('/auth/onboarding', onboarding);
-route.post('/auth/signin', signin);
-route.post('/auth/code', sendCode);
-route.post('/auth/verify-code', verifyCode);
-route.post('/auth/reset-password', resetPassword);
+route.get('/hub/', fetchStates);
+route.get('/hub/:state', fetchCitiesByState);
+route.get('/hub/:state/:city', fetchHubsByStateAndCity);
+route.get('/hub/:hubId/ratings', fetchHubRatings);
+route.post('/hub/:hubId/rating', authMiddleware, requireRole('user'), rateHub);
 
 export default route;

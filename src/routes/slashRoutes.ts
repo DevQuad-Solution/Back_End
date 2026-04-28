@@ -5,18 +5,27 @@ import {
   editSlash,
   fetchSlash,
   fetchSlashes,
+  getQrForSlash,
   joinSlash,
+  leaveSlash,
   searchSlash,
+  verifyQr,
 } from '../controllers/slash/slashControllers';
+import { authMiddleware } from '../middlewares/authMiddleware';
 
 const route = Router();
 
-route.get('/slash/', fetchSlashes);
-route.get('/slash/search', searchSlash);
-route.post('/slash/', createSlash);
-route.get('/slash/:id', fetchSlash);
-route.post('/slash/:id', joinSlash);
-route.put('/slash/:id', editSlash);
-route.delete('/slash/:id', deleteSlash);
+route.get('/slash/', authMiddleware, fetchSlashes);
+route.get('/slash/search', authMiddleware, searchSlash);
+route.post('/slash/', authMiddleware, createSlash);
+route.get('/slash/:id', authMiddleware, fetchSlash);
+route.post('/slash/:id', authMiddleware, joinSlash);
+route.put('/slash/:id', authMiddleware, editSlash);
+route.patch('/slash/:id', authMiddleware, leaveSlash);
+route.delete('/slash/:id', authMiddleware, deleteSlash);
+
+route.get('/slash/qr/:id', authMiddleware, getQrForSlash);
+route.post('/slash/v/qr', authMiddleware, verifyQr);
+route.post('/slash/claim', authMiddleware, verifyQr);
 
 export default route;

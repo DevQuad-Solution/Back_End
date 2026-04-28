@@ -6,10 +6,11 @@ import Joi from 'joi';
 import bcrypt from 'bcryptjs';
 import validationSchema from '../../utils/validationSchema';
 import { Schema, Types } from 'mongoose';
-import { Account, AppRole, IAccount } from '../../models/account';
+import { Account, Admin, AppRole, IAccount, IAdmin } from '../../models/account';
 import { generateToken, saveCookies, verifyToken } from '../../utils/tokenService';
 import { createAndSendOtp, verifyOtp } from '../../utils/otpService';
 import { MonnifyReservedAccountOptions, monnifyService } from '../../utils/paymentService';
+import { Attendant, IAttendant } from '../../models/hubAttendant';
 
 const jwtAccess = process.env.ACCESS_SECRET as string;
 const jwtRefresh = process.env.REFRESH_SECRET as string;
@@ -141,11 +142,9 @@ export const onboarding = async (req: Request, res: Response) => {
       currencyCode: 'NGN',
     };
     const userAccDet = await monnifyService.createDedicatedAccount(accPayload);
-    const getDet = await monnifyService.getDedicatedAccount(userAccDet.accountReference);
-    console.log('Det: ', getDet);
     const dbUserAccDet = {
       bankName: userAccDet.accounts![0].bankName,
-      accountName: userAccDet.accountName,
+      accountName: `MONNIFY / Slashit-${userAccDet.accountName}`,
       accountNumber: userAccDet.accounts![0].accountNumber,
       accountRef: userAccDet.accountReference,
     };
@@ -188,19 +187,19 @@ export const onboarding = async (req: Request, res: Response) => {
 
 export const signin = async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body;
+    const { identifier, password } = req.body;
     const { error } = Joi.object({
-      email: validationSchema.email,
+      identifier: validationSchema.identifier,
       password: validationSchema.password,
     }).validate(req.body);
     if (error) return resSender(res, 400, 'fail', error.details[0].message);
 
-    if (!email || !password) {
-      return resSender(res, 400, 'fail', 'Email and password are required');
+    if (!identifier || !password) {
+      return resSender(res, 400, 'fail', 'Email/phone and password are required');
     }
 
     // Check if the user exists
-    const user = await Account.findOne({ email: email });
+    let user = await getAccount(identifier);
     if (!user) {
       return resSender(res, 403, 'fail', 'Invalid Credentials');
     }
@@ -210,28 +209,11 @@ export const signin = async (req: Request, res: Response) => {
       return resSender(res, 403, 'fail', 'Invalid Credentials');
     }
 
-    const getDet = await monnifyService.getDedicatedAccount(user.userAccountDetails.accountRef);
-    console.log('Det: ', getDet);
-    const dbUserAccDet = {
-      bankName: getDet.accounts![0].bankName,
-      accountName: getDet.accountName,
-      accountNumber: getDet.accounts![0].accountNumber,
-      accountRef: getDet.accountReference,
-    };
-    console.log('User acc: ', dbUserAccDet);
-    const updatedUser = await Account.findByIdAndUpdate(
-      user._id,
-      {
-        $set: { userAccountDetails: dbUserAccDet },
-      },
-      { returnDocument: 'after' },
-    );
-    if (!updatedUser) return resSender(res, 400, 'fail', 'Sign in failed!');
-
     // Generate a JWT token
     let payload = {
-      userId: updatedUser._id.toString(),
-      email: updatedUser.email,
+      userId: user._id.toString(),
+      email: user.email,
+      role: user.role
     };
 
     const [accessToken, refreshToken] = await Promise.all([
@@ -245,7 +227,7 @@ export const signin = async (req: Request, res: Response) => {
 
     await saveCookies(res, 'rfst_tkn', refreshToken);
     return resSender(res, 200, 'success', 'Sign In Successful', null, {
-      user: modifyUserResponse(updatedUser),
+      user: modifyUserResponse(user),
       accessToken,
     });
   } catch (error: any) {
@@ -326,5 +308,33 @@ export const resetPassword = async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('Failed to verify code: ', error);
     return resSender(res, 500, 'error', error.message || 'Server Error');
+  }
+};
+
+export const getAccount = async (identifier: string, id: boolean = false) => {
+  try {
+    let query: any;
+
+    if (id) {
+      // Search by ObjectId
+      query = { _id: identifier };
+    } else {
+      // Search by email or phone
+      query = {
+        $or: [{ email: identifier }, { phone: identifier }],
+      };
+    }
+
+    let account: IAccount | IAttendant | IAdmin | null = null;
+    account = await Account.findOne(query);
+    if (!account) {
+      account = await Attendant.findOne(query);
+      if (!account) {
+        account = await Admin.findOne(query);
+      }
+    }
+    return account;
+  } catch (error) {
+    throw error;
   }
 };

@@ -7,10 +7,12 @@ export interface IAccount extends Document {
   emailVerified: boolean;
   password: string;
   phone: string;
-  role: 'user' | 'attendant' | 'admin';
+  role: 'user';
   hub?: Types.ObjectId;
-  kycStatus: KycStatus;
+  kyc: { nin: string; status: KycStatus };
   status: UserStatus;
+  joined: number;
+  totalSPend: number;
   walletBalance: number;
   userAccountDetails: {
     bankName: string;
@@ -18,6 +20,15 @@ export interface IAccount extends Document {
     accountNumber: string;
     accountRef: string;
   };
+}
+
+export interface IAdmin extends Document {
+  name: string;
+  email: string;
+  emailVerified: boolean;
+  password: string;
+  phone: string;
+  role: 'super admin' | 'admin';
 }
 
 export enum KycStatus {
@@ -38,27 +49,44 @@ export enum AppRole {
   ADMIN = 'admin',
 }
 
-const userAccountSchema = new Schema({
+const userAccountSchema = new Schema(
+  {
+    name: String,
+    email: { type: String, required: false },
+    emailVerified: { type: Boolean, default: false },
+    password: String,
+    phone: String,
+    role: { type: String, enum: Object.values(AppRole), default: 'user' },
+    hub: { type: Types.ObjectId, ref: 'Hub' },
+    kyc: {
+      nin: String,
+      status: { type: String, enum: Object.values(KycStatus), default: KycStatus.UNVERIFIED },
+    },
+    status: { type: String, enum: Object.values(UserStatus), default: UserStatus.ACTIVE },
+    joined: { type: Number, default: 0 },
+    totalSPend: { type: Number, default: 0 },
+    walletBalance: { type: Number, default: 0 },
+    userAccountDetails: {
+      bankName: String,
+      accountName: String,
+      accountNumber: String,
+      accountRef: String,
+    },
+  },
+  { timestamps: true },
+);
+userAccountSchema.index({ email: 1 });
+
+const adminSchema = new Schema({
   name: String,
   email: { type: String, required: false },
   emailVerified: { type: Boolean, default: false },
   password: String,
   phone: String,
-  role: { type: String, enum: Object.values(AppRole), default: AppRole.USER },
-  hub: { type: Types.ObjectId, ref: 'Hub' },
-  kycStatus: { type: String, enum: Object.values(KycStatus), default: KycStatus.UNVERIFIED },
-  status: { type: String, enum: Object.values(UserStatus), default: UserStatus.ACTIVE },
-  walletBalance: { type: Number, default: 0 },
-  userAccountDetails: {
-    bankName: String,
-    accountName: String,
-    accountNumber: String,
-    accountRef: String,
-  },
+  role: { type: String, enum: ['admin', 'super admin'], default: 'admin' },
 });
 
-userAccountSchema.index({ email: 1 });
-
 const Account = model<IAccount>('Account', userAccountSchema);
+const Admin = model<IAdmin>('Admin', adminSchema);
 
-export { Account };
+export { Account, Admin };

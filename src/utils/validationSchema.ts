@@ -255,6 +255,11 @@ class ValidationService {
   color = Joi.string().required().messages({
     "string.base": "Color ID must be a string",
   });
+
+  object = Joi.object().required().messages({
+    "object.base": "Field must be an object",
+    "any.required": "Field is required"
+  })
 }
 
 export default new ValidationService();

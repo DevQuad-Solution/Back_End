@@ -32,7 +32,7 @@ export function toBase64(input: string) {
   // Convert string to a Buffer and then to Base64
   const base64String: string = Buffer.from(originalString, 'utf8').toString('base64');
 
-  console.log(base64String); // Output: SGVsbG8sIFR5cGVTY3JpcHQh
+  // console.log(base64String); // Output: SGVsbG8sIFR5cGVTY3JpcHQh
   return base64String;
 }
 
@@ -42,6 +42,6 @@ export function base64ToString(input: string) {
   // Convert Base64 back to a Buffer and then to a UTF-8 string
   const decodedString: string = Buffer.from(base64Input, 'base64').toString('utf8');
 
-  console.log(decodedString); // Output: Hello, TypeScript!
+  // console.log(decodedString); // Output: Hello, TypeScript!
   return decodedString;
 }

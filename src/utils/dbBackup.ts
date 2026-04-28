@@ -4,6 +4,9 @@ import fs from 'fs';
 import path from 'path';
 import cron from 'node-cron';
 import { Hub, HubStatus } from '../models/hubAttendant';
+import { Product } from '../models/product';
+import { Admin } from '../models/account';
+import bcrypt from 'bcryptjs';
 
 async function performBackup() {
   // MongoDB connection URI
@@ -70,18 +73,39 @@ cron.schedule('0 3 * * *', () => {
   });
 });
 
-async function createDefaultHub() {
+async function seedData() {
   const hubExist = await Hub.findOne();
+  const productExist = await Product.findOne();
+  const admin = await Admin.findOne({ email: 'kolawoleakintayok@gmail.com' });
   if (!hubExist) {
-    const newHub = new Hub({
+    await Hub.create({
       name: 'Default Hub',
       state: 'Oyo',
       city: 'Ibadan',
       address: 'UI Ibadan, Oojo',
       status: HubStatus.ACTIVE,
     });
-
-    await newHub.save();
+  }
+  if (!productExist) {
+    await Product.create({
+      name: '50kg bad of rice',
+      totalValue: 100000,
+      pricePerSlot: 10000,
+      noOfSlots: 10,
+      quantity: 1,
+      category: 'Grains',
+    });
+  }
+  if (!admin) {
+    const password = process.env.ADMIN_PWD!;
+    await Admin.create({
+      name: 'Kolawole Akintayo',
+      email: 'kolawoleakintayok@gmail.com',
+      emailVerified: true,
+      password: bcrypt.hashSync(password, bcrypt.genSaltSync(15)),
+      phone: '09076889241',
+      role: 'super admin',
+    });
   }
 }
-createDefaultHub();
+seedData();

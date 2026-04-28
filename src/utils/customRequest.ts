@@ -1,11 +1,11 @@
-import { Request as ExpressRequest, RequestHandler } from "express";
-import { IAccount } from "../models/account";
+import { Request as ExpressRequest, RequestHandler } from 'express';
+import { IAccount, IAdmin } from '../models/account';
+import { IAttendant } from '../models/hubAttendant';
 
 export interface Request extends ExpressRequest {
-  user?: IAccount;
+  user?: IAccount | IAttendant | IAdmin;
   userRole?: string;
 }
-
 
 // export type CustomRequestHandler = RequestHandler<
 //   any, // Params

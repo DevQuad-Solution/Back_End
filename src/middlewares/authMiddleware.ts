@@ -4,6 +4,7 @@ import { errorHandler, resSender } from '../utils/responseService';
 import { modifyUserResponse } from '../utils/modifyResponse';
 import { verifyToken } from '../utils/tokenService';
 import { Account } from '../models/account';
+import { getAccount } from '../controllers/auth/authControllers';
 
 const jwtAccess = process.env.ACCESS_SECRET as string;
 
@@ -14,7 +15,7 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
     if (!token) return resSender(res, 401, 'fail', 'No token');
 
     const decoded = verifyToken(token, jwtAccess) as any;
-    const user = await Account.findById(decoded.userId);
+    const user = await getAccount(decoded.userId, true);
     if (!user) return resSender(res, 401, 'fail', 'Invalid token');
 
     req.user = modifyUserResponse(user);
