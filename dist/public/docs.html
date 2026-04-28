@@ -1,0 +1,923 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SlashIt API Documentation</title>
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.0.1/swagger-ui.min.css"
+    />
+    <style>
+      html {
+        box-sizing: border-box;
+        overflow: -moz-scrollbars-vertical;
+        overflow-y: scroll;
+      }
+      body {
+        margin: 0;
+        padding: 0;
+        background: #f5f5f5;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="swagger-ui"></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.0.1/swagger-ui.min.js"></script>
+    <script>
+      const spec = {
+        openapi: '3.0.0',
+        info: {
+          title: 'SlashIt API',
+          description:
+            'SlashIt Backend API - A collaborative purchasing platform for group buying and pooling resources',
+          version: '1.0.0',
+          contact: {
+            name: 'SlashIt Support',
+            url: 'https://slashit.com',
+          },
+          license: {
+            name: 'ISC',
+          },
+        },
+        servers: [
+          {
+            url: 'http://localhost:5004',
+            description: 'Development Server',
+          },
+          {
+            url: 'https://api.slashit.com',
+            description: 'Production Server',
+          },
+        ],
+        components: {
+          securitySchemes: {
+            BearerAuth: {
+              type: 'http',
+              scheme: 'bearer',
+              bearerFormat: 'JWT',
+              description: 'JWT token required in Authorization header',
+            },
+          },
+          schemas: {
+            User: {
+              type: 'object',
+              properties: {
+                _id: { type: 'string', description: 'User ID' },
+                name: { type: 'string' },
+                email: { type: 'string', format: 'email' },
+                phone: { type: 'string' },
+                role: { type: 'string', enum: ['user', 'admin', 'attendant'] },
+                emailVerified: { type: 'boolean' },
+                walletBalance: { type: 'number' },
+                hub: { type: 'string', description: 'Hub ID' },
+                status: { type: 'string', enum: ['active', 'suspended'] },
+                createdAt: { type: 'string', format: 'date-time' },
+              },
+            },
+            Product: {
+              type: 'object',
+              properties: {
+                _id: { type: 'string' },
+                name: { type: 'string' },
+                category: { type: 'string' },
+                description: { type: 'string' },
+                emoji: { type: 'string' },
+                quantity: { type: 'integer' },
+                noOfSlots: { type: 'integer' },
+                totalValue: { type: 'number' },
+                pricePerSlot: { type: 'number' },
+                status: { type: 'string', enum: ['Active', 'Inactive'] },
+                partner: { type: 'string' },
+                createdAt: { type: 'string', format: 'date-time' },
+              },
+            },
+            Slash: {
+              type: 'object',
+              properties: {
+                _id: { type: 'string' },
+                product: { $ref: '#/components/schemas/Product' },
+                hub: { type: 'string' },
+                status: {
+                  type: 'string',
+                  enum: ['open', 'purchasing', 'pickup', 'completed', 'dissolved'],
+                },
+                timeLimit: { type: 'string' },
+                joined: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      user: { type: 'string' },
+                      claimed: { type: 'boolean' },
+                      qrCode: { type: 'string' },
+                      claimCode: { type: 'string' },
+                    },
+                  },
+                },
+                createdBy: { type: 'string' },
+                createdAt: { type: 'string', format: 'date-time' },
+              },
+            },
+            Hub: {
+              type: 'object',
+              properties: {
+                _id: { type: 'string' },
+                name: { type: 'string' },
+                address: { type: 'string' },
+                city: { type: 'string' },
+                state: { type: 'string' },
+                status: { type: 'string', enum: ['active', 'inactive', 'suspended'] },
+                attendant: { type: 'string' },
+                createdAt: { type: 'string', format: 'date-time' },
+              },
+            },
+            Notification: {
+              type: 'object',
+              properties: {
+                _id: { type: 'string' },
+                title: { type: 'string' },
+                message: { type: 'string' },
+                users: {
+                  type: 'array',
+                  items: { type: 'string' },
+                },
+                read: { type: 'boolean' },
+                createdAt: { type: 'string', format: 'date-time' },
+              },
+            },
+            TransactionHistory: {
+              type: 'object',
+              properties: {
+                _id: { type: 'string' },
+                type: { type: 'string', enum: ['transfer', 'deduction', 'refund'] },
+                userId: { type: 'string' },
+                amount: { type: 'number' },
+                trxReference: { type: 'string' },
+                trxDate: { type: 'string', format: 'date-time' },
+                createdAt: { type: 'string', format: 'date-time' },
+              },
+            },
+            ErrorResponse: {
+              type: 'object',
+              properties: {
+                status: { type: 'integer' },
+                message: { type: 'string' },
+                type: { type: 'string' },
+              },
+            },
+          },
+        },
+        paths: {
+          '/': {
+            get: {
+              tags: ['Health Check'],
+              summary: 'Root test route',
+              responses: { 200: { description: 'Server is working' } },
+            },
+          },
+          '/health': {
+            get: {
+              tags: ['Health Check'],
+              summary: 'Health check endpoint',
+              responses: { 200: { description: 'Server health status' } },
+            },
+          },
+          '/api/test': {
+            get: {
+              tags: ['Health Check'],
+              summary: 'API test route',
+              responses: { 200: { description: 'API is working' } },
+            },
+          },
+          '/api/auth/': {
+            post: {
+              tags: ['Authentication'],
+              summary: 'User signup',
+              description: 'Create a new user account',
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        fullName: { type: 'string' },
+                        email: { type: 'string', format: 'email' },
+                        phoneNumber: { type: 'string' },
+                        password: { type: 'string', format: 'password' },
+                      },
+                      required: ['fullName', 'email', 'phoneNumber', 'password'],
+                    },
+                  },
+                },
+              },
+              responses: {
+                201: { description: 'Account created successfully' },
+                400: { description: 'Validation error' },
+                403: { description: 'Email already exists' },
+              },
+            },
+          },
+          '/api/auth/signin': {
+            post: {
+              tags: ['Authentication'],
+              summary: 'User signin',
+              description: 'Login with email/phone and password',
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        identifier: { type: 'string', description: 'Email or phone number' },
+                        password: { type: 'string', format: 'password' },
+                      },
+                      required: ['identifier', 'password'],
+                    },
+                  },
+                },
+              },
+              responses: {
+                200: { description: 'Login successful' },
+                400: { description: 'Invalid credentials' },
+              },
+            },
+          },
+          '/api/auth/code': {
+            post: {
+              tags: ['Authentication'],
+              summary: 'Send verification code',
+              description: 'Request OTP code to be sent to email',
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        email: { type: 'string', format: 'email' },
+                        reason: { type: 'string', enum: ['signup', 'forgot_password'] },
+                      },
+                      required: ['email', 'reason'],
+                    },
+                  },
+                },
+              },
+              responses: { 200: { description: 'Code sent successfully' } },
+            },
+          },
+          '/api/auth/verify-code': {
+            post: {
+              tags: ['Authentication'],
+              summary: 'Verify code',
+              description: 'Verify the OTP code sent to email',
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        email: { type: 'string', format: 'email' },
+                        code: { type: 'string' },
+                        reason: { type: 'string' },
+                      },
+                      required: ['email', 'code', 'reason'],
+                    },
+                  },
+                },
+              },
+              responses: { 200: { description: 'Code verified successfully' } },
+            },
+          },
+          '/api/auth/onboarding': {
+            post: {
+              tags: ['Authentication'],
+              summary: 'Complete user onboarding',
+              description: 'Finalize user registration and create wallet',
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        token: { type: 'string' },
+                        email: { type: 'string' },
+                        hubId: { type: 'string' },
+                      },
+                      required: ['token', 'email', 'hubId'],
+                    },
+                  },
+                },
+              },
+              responses: { 200: { description: 'Onboarding completed' } },
+            },
+          },
+          '/api/auth/reset-password': {
+            post: {
+              tags: ['Authentication'],
+              summary: 'Reset password',
+              description: 'Reset user password after verification',
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        email: { type: 'string' },
+                        newPassword: { type: 'string' },
+                      },
+                    },
+                  },
+                },
+              },
+              responses: { 200: { description: 'Password reset successfully' } },
+            },
+          },
+          '/api/auth/me': {
+            get: {
+              tags: ['Authentication'],
+              summary: 'Get current user',
+              security: [{ BearerAuth: [] }],
+              responses: {
+                200: { description: 'User data retrieved' },
+                401: { description: 'Unauthorized' },
+              },
+            },
+          },
+          '/api/products': {
+            get: {
+              tags: ['Products'],
+              summary: 'Fetch all products',
+              description: 'Public endpoint to list all products',
+              responses: { 200: { description: 'List of products' } },
+            },
+            post: {
+              tags: ['Products'],
+              summary: 'Add new product',
+              security: [{ BearerAuth: [] }],
+              description: 'Admin only - Create a new product',
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        name: { type: 'string' },
+                        category: { type: 'string' },
+                        description: { type: 'string' },
+                        emoji: { type: 'string' },
+                        quantity: { type: 'integer' },
+                        noOfSlots: { type: 'integer' },
+                        totalValue: { type: 'number' },
+                        partner: { type: 'string' },
+                      },
+                      required: ['name', 'noOfSlots', 'totalValue', 'quantity'],
+                    },
+                  },
+                },
+              },
+              responses: { 201: { description: 'Product created' } },
+            },
+          },
+          '/api/products/status': {
+            put: {
+              tags: ['Products'],
+              summary: 'Change product status',
+              security: [{ BearerAuth: [] }],
+              description: 'Admin only - Update product status',
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        productId: { type: 'string' },
+                        status: { type: 'string', enum: ['Active', 'Inactive'] },
+                      },
+                      required: ['productId', 'status'],
+                    },
+                  },
+                },
+              },
+              responses: { 200: { description: 'Status updated' } },
+            },
+          },
+          '/api/slash/': {
+            get: {
+              tags: ['Slash'],
+              summary: "Fetch user's slashes",
+              security: [{ BearerAuth: [] }],
+              responses: { 200: { description: 'List of user slashes' } },
+            },
+            post: {
+              tags: ['Slash'],
+              summary: 'Create a new slash',
+              security: [{ BearerAuth: [] }],
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        productId: { type: 'string' },
+                        timeLimit: { type: 'string' },
+                        hubId: { type: 'string' },
+                      },
+                      required: ['productId', 'hubId'],
+                    },
+                  },
+                },
+              },
+              responses: { 200: { description: 'Slash created' } },
+            },
+          },
+          '/api/slash/search': {
+            get: {
+              tags: ['Slash'],
+              summary: 'Search slashes',
+              security: [{ BearerAuth: [] }],
+              parameters: [
+                { name: 'query', in: 'query', schema: { type: 'string' } },
+                { name: 'page', in: 'query', schema: { type: 'integer' } },
+                { name: 'limit', in: 'query', schema: { type: 'integer' } },
+              ],
+              responses: { 200: { description: 'Search results' } },
+            },
+          },
+          '/api/slash/{id}': {
+            get: {
+              tags: ['Slash'],
+              summary: 'Fetch slash details',
+              security: [{ BearerAuth: [] }],
+              parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+              responses: { 200: { description: 'Slash details' } },
+            },
+            put: {
+              tags: ['Slash'],
+              summary: 'Edit slash',
+              security: [{ BearerAuth: [] }],
+              parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+              responses: { 200: { description: 'Slash updated' } },
+            },
+            delete: {
+              tags: ['Slash'],
+              summary: 'Delete slash',
+              security: [{ BearerAuth: [] }],
+              parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+              responses: { 200: { description: 'Slash deleted' } },
+            },
+          },
+          '/api/slash/{id}': {
+            post: {
+              tags: ['Slash'],
+              summary: 'Join slash',
+              security: [{ BearerAuth: [] }],
+              parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+              responses: { 200: { description: 'Joined slash successfully' } },
+            },
+            patch: {
+              tags: ['Slash'],
+              summary: 'Leave slash',
+              security: [{ BearerAuth: [] }],
+              parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+              responses: { 200: { description: 'Left slash' } },
+            },
+          },
+          '/api/slash/qr/{id}': {
+            get: {
+              tags: ['Slash'],
+              summary: 'Get QR code for slash',
+              security: [{ BearerAuth: [] }],
+              parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+              responses: { 200: { description: 'QR code retrieved' } },
+            },
+          },
+          '/api/slash/v/qr': {
+            post: {
+              tags: ['Slash'],
+              summary: 'Verify QR code',
+              security: [{ BearerAuth: [] }],
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        qrData: { type: 'string' },
+                        claimCode: { type: 'string' },
+                      },
+                    },
+                  },
+                },
+              },
+              responses: { 200: { description: 'QR verified' } },
+            },
+          },
+          '/api/hub/': {
+            get: {
+              tags: ['Hub'],
+              summary: 'Fetch all states with hubs',
+              responses: { 200: { description: 'List of states' } },
+            },
+          },
+          '/api/hub/{state}': {
+            get: {
+              tags: ['Hub'],
+              summary: 'Fetch cities in state',
+              parameters: [
+                { name: 'state', in: 'path', required: true, schema: { type: 'string' } },
+              ],
+              responses: { 200: { description: 'List of cities' } },
+            },
+          },
+          '/api/hub/{state}/{city}': {
+            get: {
+              tags: ['Hub'],
+              summary: 'Fetch hubs in city',
+              parameters: [
+                { name: 'state', in: 'path', required: true, schema: { type: 'string' } },
+                { name: 'city', in: 'path', required: true, schema: { type: 'string' } },
+              ],
+              responses: { 200: { description: 'List of hubs' } },
+            },
+          },
+          '/api/hub/{hubId}/ratings': {
+            get: {
+              tags: ['Hub'],
+              summary: 'Fetch hub ratings',
+              parameters: [
+                { name: 'hubId', in: 'path', required: true, schema: { type: 'string' } },
+              ],
+              responses: { 200: { description: 'Hub ratings and reviews' } },
+            },
+          },
+          '/api/hub/{hubId}/rating': {
+            post: {
+              tags: ['Hub'],
+              summary: 'Rate hub',
+              security: [{ BearerAuth: [] }],
+              parameters: [
+                { name: 'hubId', in: 'path', required: true, schema: { type: 'string' } },
+              ],
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        rating: { type: 'integer', minimum: 1, maximum: 5 },
+                        comment: { type: 'string' },
+                      },
+                      required: ['rating'],
+                    },
+                  },
+                },
+              },
+              responses: { 200: { description: 'Rating created' } },
+            },
+          },
+          '/api/attendant/dashboard': {
+            get: {
+              tags: ['Attendant'],
+              summary: 'Attendant dashboard',
+              security: [{ BearerAuth: [] }],
+              description: 'Get attendant dashboard data',
+              responses: { 200: { description: 'Dashboard data' } },
+            },
+          },
+          '/api/notifications': {
+            get: {
+              tags: ['Notifications'],
+              summary: 'Fetch all notifications',
+              security: [{ BearerAuth: [] }],
+              description: 'Admin only - Fetch all system notifications',
+              responses: { 200: { description: 'List of notifications' } },
+            },
+          },
+          '/api/notifications/me': {
+            get: {
+              tags: ['Notifications'],
+              summary: 'Fetch user notifications',
+              security: [{ BearerAuth: [] }],
+              description: 'Get notifications for authenticated user',
+              responses: { 200: { description: 'User notifications' } },
+            },
+          },
+          '/api/transaction': {
+            get: {
+              tags: ['Transactions'],
+              summary: 'Fetch user transactions',
+              security: [{ BearerAuth: [] }],
+              parameters: [
+                { name: 'page', in: 'query', schema: { type: 'integer' } },
+                { name: 'limit', in: 'query', schema: { type: 'integer' } },
+              ],
+              responses: { 200: { description: 'Transaction history' } },
+            },
+          },
+          '/api/transaction/webhook': {
+            post: {
+              tags: ['Transactions'],
+              summary: 'Payment webhook',
+              description:
+                'Webhook endpoint for payment provider (Monnify) to notify about successful transactions',
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        eventType: { type: 'string' },
+                        eventData: { type: 'object' },
+                      },
+                    },
+                  },
+                },
+              },
+              responses: { 200: { description: 'Webhook processed' } },
+            },
+          },
+          '/api/admin/users': {
+            get: {
+              tags: ['Admin - Users'],
+              summary: 'Fetch all users',
+              security: [{ BearerAuth: [] }],
+              description: 'Admin only - Get paginated list of all users',
+              parameters: [
+                { name: 'page', in: 'query', schema: { type: 'integer' } },
+                { name: 'limit', in: 'query', schema: { type: 'integer' } },
+              ],
+              responses: { 200: { description: 'List of users' } },
+            },
+          },
+          '/api/admin/users/search': {
+            get: {
+              tags: ['Admin - Users'],
+              summary: 'Search users',
+              security: [{ BearerAuth: [] }],
+              description: 'Admin only - Search users by name, email, or phone',
+              parameters: [
+                { name: 'query', in: 'query', required: true, schema: { type: 'string' } },
+                {
+                  name: 'status',
+                  in: 'query',
+                  schema: {
+                    type: 'string',
+                    enum: ['All', 'Verified', 'Unverified', 'Pending', 'Rejected'],
+                  },
+                },
+                { name: 'page', in: 'query', schema: { type: 'integer' } },
+                { name: 'limit', in: 'query', schema: { type: 'integer' } },
+              ],
+              responses: { 200: { description: 'Search results' } },
+            },
+          },
+          '/api/admin/users/{id}': {
+            get: {
+              tags: ['Admin - Users'],
+              summary: 'Get user by ID',
+              security: [{ BearerAuth: [] }],
+              parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+              responses: { 200: { description: 'User details' } },
+            },
+          },
+          '/api/admin/users/{id}/suspend': {
+            patch: {
+              tags: ['Admin - Users'],
+              summary: 'Suspend user',
+              security: [{ BearerAuth: [] }],
+              parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+              responses: { 200: { description: 'User suspended' } },
+            },
+          },
+          '/api/admin/stats': {
+            get: {
+              tags: ['Admin - Dashboard'],
+              summary: 'Get admin statistics',
+              security: [{ BearerAuth: [] }],
+              description: 'Admin only - Fetch platform statistics',
+              responses: { 200: { description: 'Statistics data' } },
+            },
+          },
+          '/api/admin/slashes/search': {
+            get: {
+              tags: ['Admin - Slashes'],
+              summary: 'Search slashes',
+              security: [{ BearerAuth: [] }],
+              parameters: [
+                { name: 'query', in: 'query', schema: { type: 'string' } },
+                { name: 'hubId', in: 'query', schema: { type: 'string' } },
+                { name: 'status', in: 'query', schema: { type: 'string' } },
+                { name: 'page', in: 'query', schema: { type: 'integer' } },
+                { name: 'limit', in: 'query', schema: { type: 'integer' } },
+              ],
+              responses: { 200: { description: 'Search results' } },
+            },
+          },
+          '/api/admin/slashes/{id}/dissolve': {
+            delete: {
+              tags: ['Admin - Slashes'],
+              summary: 'Dissolve slash',
+              security: [{ BearerAuth: [] }],
+              description: 'Admin only - Dissolve a slash and refund all users',
+              parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+              responses: { 200: { description: 'Slash dissolved' } },
+            },
+          },
+          '/api/admin/hubs': {
+            get: {
+              tags: ['Admin - Hubs'],
+              summary: 'Fetch hubs',
+              security: [{ BearerAuth: [] }],
+              parameters: [
+                { name: 'query', in: 'query', required: true, schema: { type: 'string' } },
+                { name: 'status', in: 'query', schema: { type: 'string' } },
+                { name: 'page', in: 'query', schema: { type: 'integer' } },
+                { name: 'limit', in: 'query', schema: { type: 'integer' } },
+              ],
+              responses: { 200: { description: 'List of hubs' } },
+            },
+            post: {
+              tags: ['Admin - Hubs'],
+              summary: 'Create hub',
+              security: [{ BearerAuth: [] }],
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        name: { type: 'string' },
+                        address: { type: 'string' },
+                        city: { type: 'string' },
+                        state: { type: 'string' },
+                      },
+                      required: ['name', 'address', 'city', 'state'],
+                    },
+                  },
+                },
+              },
+              responses: { 201: { description: 'Hub created' } },
+            },
+          },
+          '/api/admin/hubs/{id}': {
+            get: {
+              tags: ['Admin - Hubs'],
+              summary: 'Get hub by ID',
+              security: [{ BearerAuth: [] }],
+              parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+              responses: { 200: { description: 'Hub details' } },
+            },
+          },
+          '/api/admin/hubs/{id}/status': {
+            patch: {
+              tags: ['Admin - Hubs'],
+              summary: 'Change hub status',
+              security: [{ BearerAuth: [] }],
+              parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        status: { type: 'string', enum: ['active', 'inactive', 'suspended'] },
+                      },
+                      required: ['status'],
+                    },
+                  },
+                },
+              },
+              responses: { 200: { description: 'Status updated' } },
+            },
+          },
+          '/api/admin/hubs/{hubId}/attendant': {
+            post: {
+              tags: ['Admin - Attendants'],
+              summary: 'Assign attendant to hub',
+              security: [{ BearerAuth: [] }],
+              parameters: [
+                { name: 'hubId', in: 'path', required: true, schema: { type: 'string' } },
+              ],
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        attendantId: { type: 'string' },
+                      },
+                    },
+                  },
+                },
+              },
+              responses: { 200: { description: 'Attendant assigned' } },
+            },
+          },
+          '/api/admin/attendants': {
+            get: {
+              tags: ['Admin - Attendants'],
+              summary: 'Fetch attendants',
+              security: [{ BearerAuth: [] }],
+              responses: { 200: { description: 'List of attendants' } },
+            },
+            post: {
+              tags: ['Admin - Attendants'],
+              summary: 'Create attendant',
+              security: [{ BearerAuth: [] }],
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        name: { type: 'string' },
+                        email: { type: 'string' },
+                        phone: { type: 'string' },
+                        pin: { type: 'string' },
+                      },
+                      required: ['name', 'email', 'phone'],
+                    },
+                  },
+                },
+              },
+              responses: { 201: { description: 'Attendant created' } },
+            },
+          },
+          '/api/admin/attendants/{id}/pin': {
+            patch: {
+              tags: ['Admin - Attendants'],
+              summary: 'Reset attendant PIN',
+              security: [{ BearerAuth: [] }],
+              parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        newPin: { type: 'string' },
+                      },
+                    },
+                  },
+                },
+              },
+              responses: { 200: { description: 'PIN reset' } },
+            },
+          },
+          '/api/admin/attendants/{id}/status': {
+            patch: {
+              tags: ['Admin - Attendants'],
+              summary: 'Change attendant status',
+              security: [{ BearerAuth: [] }],
+              parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        status: { type: 'string', enum: ['active', 'inactive', 'suspended'] },
+                      },
+                    },
+                  },
+                },
+              },
+              responses: { 200: { description: 'Status updated' } },
+            },
+          },
+        },
+      };
+
+      window.onload = function () {
+        const ui = SwaggerUIBundle({
+          spec: spec,
+          dom_id: '#swagger-ui',
+          deepLinking: true,
+          presets: [SwaggerUIBundle.presets.apis, SwaggerUIBundle.SwaggerUIStandalonePreset],
+          plugins: [SwaggerUIBundle.plugins.DownloadUrl],
+          layout: 'StandaloneLayout',
+        });
+        window.ui = ui;
+      };
+    </script>
+  </body>
+</html>

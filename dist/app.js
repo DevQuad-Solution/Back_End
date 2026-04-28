@@ -26,12 +26,37 @@ const PORT = process.env.PORT || 5004;
 // Init socket.io
 (0, websocket_1.useSocket)(server);
 // Middleware
+// Configure CSP for Swagger UI
+app.use((0, helmet_1.default)({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: [
+                "'self'",
+                "'unsafe-inline'", // Required for Swagger UI
+                'https://unpkg.com',
+            ],
+            styleSrc: [
+                "'self'",
+                "'unsafe-inline'", // Required for Swagger UI
+                'https://unpkg.com',
+            ],
+            imgSrc: ["'self'", 'data:', 'https:'],
+            connectSrc: ["'self'", 'https://unpkg.com', 'https://*.swagger.io'],
+            fontSrc: ["'self'", 'https:', 'data:'],
+            objectSrc: ["'none'"],
+            baseUri: ["'self'"],
+            formAction: ["'self'"],
+            frameAncestors: ["'none'"],
+        },
+    },
+}));
 app.use((0, cors_1.default)(cors_2.default));
 app.use(rateLimiter_1.reqRateLimit); // Apply rate-limit
-app.use((0, helmet_1.default)());
 app.use((0, morgan_1.default)('dev'));
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
+app.use(express_1.default.static(path_1.default.join(__dirname, 'public')));
 // Basic route
 app.get('/', (req, res) => {
     return (0, responseService_1.resSender)(res, 200, 'success', 'Root Test route is working!');
@@ -43,6 +68,11 @@ app.get('/health', (req, res) => {
 });
 app.get('/api/test', (req, res) => {
     return (0, responseService_1.resSender)(res, 200, 'success', 'Test route is working!');
+});
+// API Documentation endpoint
+app.get('/api/v1/docs', (req, res) => {
+    const docsPath = path_1.default.join(__dirname, 'public', 'docs.html');
+    res.sendFile(docsPath);
 });
 // Api Routes
 // console.log('Looking for routes in:', path.join(__dirname, 'Routes'));
@@ -74,6 +104,7 @@ app.use((req, res, next) => {
     .then(() => {
     server.listen(PORT, () => {
         console.log(`⚡️[server]: Server is running at http://localhost:${PORT}`);
+        console.log(`📚 API Docs available at http://localhost:${PORT}/api/v1/docs`);
     });
 })
     .catch((err) => console.log('Error connecting to DB: ', err.message));

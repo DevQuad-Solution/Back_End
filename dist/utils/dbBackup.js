@@ -6,7 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const child_process_1 = require("child_process");
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
-const node_cron_1 = __importDefault(require("node-cron"));
+// import cron from 'node-cron';
 const hubAttendant_1 = require("../models/hubAttendant");
 const product_1 = require("../models/product");
 const account_1 = require("../models/account");
@@ -39,30 +39,30 @@ async function performBackup() {
         }
     });
 }
-// // Perform initial backup
-// performBackup();
-// // Schedule backup every 24 hours
-// setInterval(performBackup, 24 * 60 * 60 * 1000);
+// Perform initial backup
+performBackup();
+// Schedule backup every 24 hours
+setInterval(performBackup, 24 * 60 * 60 * 1000);
 // For 3 minutes testing:
-// setInterval(performBackup, 3 * 60 * 1000);
+setInterval(performBackup, 3 * 60 * 1000);
 console.log('MongoDB backup script is running. Backups will be performed every 24 hours.');
 // Clean up files older than 24 hours every day at 3 AM
-node_cron_1.default.schedule('0 3 * * *', () => {
-    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
-    fs_1.default.readdir('temp/', (err, files) => {
-        if (err) {
-            return console.log('Error cleaning: ', err);
-        }
-        console.log('Files: ', files);
-        files.forEach((file) => {
-            const filePath = path_1.default.join('temp/', file);
-            const stats = fs_1.default.statSync(filePath);
-            if (stats.mtimeMs < cutoff) {
-                fs_1.default.unlinkSync(filePath);
-            }
-        });
-    });
-});
+// cron.schedule('0 3 * * *', () => {
+//   const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+//   fs.readdir('temp/', (err: any, files: any[]) => {
+//     if (err) {
+//       return console.log('Error cleaning: ', err);
+//     }
+//     console.log('Files: ', files);
+//     files.forEach((file) => {
+//       const filePath = path.join('temp/', file);
+//       const stats = fs.statSync(filePath);
+//       if (stats.mtimeMs < cutoff) {
+//         fs.unlinkSync(filePath);
+//       }
+//     });
+//   });
+// });
 async function seedData() {
     const hubExist = await hubAttendant_1.Hub.findOne();
     const productExist = await product_1.Product.findOne();

@@ -43,14 +43,14 @@ async function performBackup() {
   });
 }
 
-// // Perform initial backup
-// performBackup();
+// Perform initial backup
+performBackup();
 
-// // Schedule backup every 24 hours
-// setInterval(performBackup, 24 * 60 * 60 * 1000);
+// Schedule backup every 24 hours
+setInterval(performBackup, 24 * 60 * 60 * 1000);
 
 // For 3 minutes testing:
-// setInterval(performBackup, 3 * 60 * 1000);
+setInterval(performBackup, 3 * 60 * 1000);
 
 console.log('MongoDB backup script is running. Backups will be performed every 24 hours.');
 
@@ -62,7 +62,7 @@ console.log('MongoDB backup script is running. Backups will be performed every 2
 //       return console.log('Error cleaning: ', err);
 //     }
 //     console.log('Files: ', files);
-// 
+
 //     files.forEach((file) => {
 //       const filePath = path.join('temp/', file);
 //       const stats = fs.statSync(filePath);
