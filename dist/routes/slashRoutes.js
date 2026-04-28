@@ -1,0 +1,18 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const slashControllers_1 = require("../controllers/slash/slashControllers");
+const authMiddleware_1 = require("../middlewares/authMiddleware");
+const route = (0, express_1.Router)();
+route.get('/slash/', authMiddleware_1.authMiddleware, slashControllers_1.fetchSlashes);
+route.get('/slash/search', authMiddleware_1.authMiddleware, slashControllers_1.searchSlash);
+route.post('/slash/', authMiddleware_1.authMiddleware, slashControllers_1.createSlash);
+route.get('/slash/:id', authMiddleware_1.authMiddleware, slashControllers_1.fetchSlash);
+route.post('/slash/:id', authMiddleware_1.authMiddleware, slashControllers_1.joinSlash);
+route.put('/slash/:id', authMiddleware_1.authMiddleware, slashControllers_1.editSlash);
+route.patch('/slash/:id', authMiddleware_1.authMiddleware, slashControllers_1.leaveSlash);
+route.delete('/slash/:id', authMiddleware_1.authMiddleware, slashControllers_1.deleteSlash);
+route.get('/slash/qr/:id', authMiddleware_1.authMiddleware, slashControllers_1.getQrForSlash);
+route.post('/slash/v/qr', authMiddleware_1.authMiddleware, slashControllers_1.verifyQr);
+route.post('/slash/claim', authMiddleware_1.authMiddleware, slashControllers_1.verifyQr);
+exports.default = route;

@@ -26,12 +26,41 @@ const PORT = process.env.PORT || 5004;
 useSocket(server);
 
 // Middleware
+
+// Configure CSP for Swagger UI
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: [
+          "'self'",
+          "'unsafe-inline'", // Required for Swagger UI
+          'https://unpkg.com',
+        ],
+        styleSrc: [
+          "'self'",
+          "'unsafe-inline'", // Required for Swagger UI
+          'https://unpkg.com',
+        ],
+        imgSrc: ["'self'", 'data:', 'https:'],
+        connectSrc: ["'self'", 'https://unpkg.com', 'https://*.swagger.io'],
+        fontSrc: ["'self'", 'https:', 'data:'],
+        objectSrc: ["'none'"],
+        baseUri: ["'self'"],
+        formAction: ["'self'"],
+        frameAncestors: ["'none'"],
+      },
+    },
+  }),
+);
+
 app.use(cors(corsOptions));
 app.use(reqRateLimit); // Apply rate-limit
-app.use(helmet());
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Basic route
 app.get('/', (req: Request, res: Response) => {
@@ -46,6 +75,12 @@ app.get('/health', (req: Request, res: Response) => {
 
 app.get('/api/test', (req, res) => {
   return resSender(res, 200, 'success', 'Test route is working!');
+});
+
+// API Documentation endpoint
+app.get('/api/v1/docs', (req: Request, res: Response) => {
+  const docsPath = path.join(__dirname, 'public', 'docs.html');
+  res.sendFile(docsPath);
 });
 
 // Api Routes
@@ -83,6 +118,7 @@ connectToDatabase()
   .then(() => {
     server.listen(PORT, () => {
       console.log(`⚡️[server]: Server is running at http://localhost:${PORT}`);
+      console.log(`📚 API Docs available at http://localhost:${PORT}/api/v1/docs`);
     });
   })
   .catch((err) => console.log('Error connecting to DB: ', err.message));
