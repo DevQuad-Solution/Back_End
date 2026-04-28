@@ -2,7 +2,7 @@ import { MongoClient } from 'mongodb';
 import { exec } from 'child_process';
 import fs from 'fs';
 import path from 'path';
-import cron from 'node-cron';
+// import cron from 'node-cron';
 import { Hub, HubStatus } from '../models/hubAttendant';
 import { Product } from '../models/product';
 import { Admin } from '../models/account';
@@ -55,23 +55,23 @@ async function performBackup() {
 console.log('MongoDB backup script is running. Backups will be performed every 24 hours.');
 
 // Clean up files older than 24 hours every day at 3 AM
-cron.schedule('0 3 * * *', () => {
-  const cutoff = Date.now() - 24 * 60 * 60 * 1000;
-  fs.readdir('temp/', (err: any, files: any[]) => {
-    if (err) {
-      return console.log('Error cleaning: ', err);
-    }
-    console.log('Files: ', files);
-
-    files.forEach((file) => {
-      const filePath = path.join('temp/', file);
-      const stats = fs.statSync(filePath);
-      if (stats.mtimeMs < cutoff) {
-        fs.unlinkSync(filePath);
-      }
-    });
-  });
-});
+// cron.schedule('0 3 * * *', () => {
+//   const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+//   fs.readdir('temp/', (err: any, files: any[]) => {
+//     if (err) {
+//       return console.log('Error cleaning: ', err);
+//     }
+//     console.log('Files: ', files);
+// 
+//     files.forEach((file) => {
+//       const filePath = path.join('temp/', file);
+//       const stats = fs.statSync(filePath);
+//       if (stats.mtimeMs < cutoff) {
+//         fs.unlinkSync(filePath);
+//       }
+//     });
+//   });
+// });
 
 async function seedData() {
   const hubExist = await Hub.findOne();
