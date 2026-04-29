@@ -235,6 +235,110 @@ export const signin = async (req: Request, res: Response) => {
   }
 };
 
+export const adminSignin = async (req: Request, res: Response) => {
+  try {
+    const { identifier, password } = req.body;
+    const { error } = Joi.object({
+      identifier: validationSchema.identifier,
+      password: validationSchema.password,
+    }).validate(req.body);
+    if (error) return resSender(res, 400, 'fail', error.details[0].message);
+
+    if (!identifier || !password) {
+      return resSender(res, 400, 'fail', 'Email/phone and password are required');
+    }
+
+    // Check if the user exists
+    let admin = await Admin.findOne({
+      $or: [{ email: identifier }, { phone: identifier }],
+    });
+    if (!admin) {
+      return resSender(res, 403, 'fail', 'Invalid Credentials');
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, admin.password);
+    if (!isPasswordValid) {
+      return resSender(res, 403, 'fail', 'Invalid Credentials');
+    }
+
+    // Generate a JWT token
+    let payload = {
+      userId: admin._id.toString(),
+      email: admin.email,
+      role: admin.role,
+    };
+
+    const [accessToken, refreshToken] = await Promise.all([
+      generateToken(payload, jwtAccess, {
+        expiresIn: '30d',
+      }),
+      generateToken(payload, jwtRefresh as string, {
+        expiresIn: '30d',
+      }),
+    ]);
+
+    await saveCookies(res, 'rfst_tkn', refreshToken);
+    return resSender(res, 200, 'success', 'Sign In Successful', null, {
+      admin: modifyUserResponse(admin),
+      accessToken,
+    });
+  } catch (error: any) {
+    return errorHandler(error, res, 'Error signing in!');
+  }
+};
+
+export const attendantSignin = async (req: Request, res: Response) => {
+  try {
+    const { identifier, password } = req.body;
+    const { error } = Joi.object({
+      identifier: validationSchema.identifier,
+      password: validationSchema.password,
+    }).validate(req.body);
+    if (error) return resSender(res, 400, 'fail', error.details[0].message);
+
+    if (!identifier || !password) {
+      return resSender(res, 400, 'fail', 'Email/phone and password are required');
+    }
+
+    // Check if the user exists
+    let att = await Attendant.findOne({
+      $or: [{ email: identifier }, { phone: identifier }],
+    });
+    if (!att) {
+      return resSender(res, 403, 'fail', 'Invalid Credentials');
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, att.password);
+    if (!isPasswordValid) {
+      return resSender(res, 403, 'fail', 'Invalid Credentials');
+    }
+
+    // Generate a JWT token
+    let payload = {
+      userId: att._id.toString(),
+      email: att.email,
+      role: att.role,
+    };
+
+    const [accessToken, refreshToken] = await Promise.all([
+      generateToken(payload, jwtAccess, {
+        expiresIn: '30d',
+      }),
+      generateToken(payload, jwtRefresh as string, {
+        expiresIn: '30d',
+      }),
+    ]);
+
+    await saveCookies(res, 'rfst_tkn', refreshToken);
+    return resSender(res, 200, 'success', 'Sign In Successful', null, {
+      attendant: modifyUserResponse(att),
+      accessToken,
+    });
+  } catch (error: any) {
+    return errorHandler(error, res, 'Error signing in!');
+  }
+};
+
 /**
  * @param email Account email
  * @param reason Reason for code request

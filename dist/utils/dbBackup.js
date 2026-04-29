@@ -11,6 +11,7 @@ const hubAttendant_1 = require("../models/hubAttendant");
 const product_1 = require("../models/product");
 const account_1 = require("../models/account");
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
+const adminControllers_1 = require("../controllers/admin/adminControllers");
 async function performBackup() {
     // MongoDB connection URI
     const dbUri = 'mongodb+srv://kolawoleakintayok_db_user:sFIVa6RgRnnGRlDm@slashit.hxy7wad.mongodb.net/?appName=slashit';
@@ -71,7 +72,8 @@ async function performBackup() {
 async function seedData() {
     const hubExist = await hubAttendant_1.Hub.findOne();
     const productExist = await product_1.Product.findOne();
-    const admin = await account_1.Admin.findOne({ email: 'kolawoleakintayok@gmail.com' });
+    const admin = await account_1.Admin.findOne();
+    const att = await hubAttendant_1.Attendant.findOne();
     if (!hubExist) {
         await hubAttendant_1.Hub.create({
             name: 'Default Hub',
@@ -91,15 +93,36 @@ async function seedData() {
             category: 'Grains',
         });
     }
+    if (!att) {
+        let { hashedPin, pin } = (0, adminControllers_1.generatePin)();
+        console.log('Att Pin: ', pin);
+        await hubAttendant_1.Attendant.create({
+            name: 'Attendant 1',
+            email: 'attendant@slashit.com',
+            phone: '09159048727',
+            emailVerified: true,
+            password: hashedPin,
+            joinedAt: new Date(),
+        });
+    }
     if (!admin) {
         const password = process.env.ADMIN_PWD;
+        const password2 = process.env.ADMIN_PWD2;
         await account_1.Admin.create({
             name: 'Kolawole Akintayo',
             email: 'kolawoleakintayok@gmail.com',
             emailVerified: true,
             password: bcryptjs_1.default.hashSync(password, bcryptjs_1.default.genSaltSync(15)),
             phone: '09076889241',
-            role: 'super admin',
+            role: 'admin',
+        });
+        await account_1.Admin.create({
+            name: 'Slashit Admin',
+            email: 'admin@slashit.com',
+            emailVerified: true,
+            password: bcryptjs_1.default.hashSync(password2, bcryptjs_1.default.genSaltSync(15)),
+            phone: '08159875674',
+            role: 'admin',
         });
     }
 }

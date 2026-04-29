@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.changeAttendantStatus = exports.resetAttendantPin = exports.fetchAttendants = exports.createAttendant = exports.asignAttendantToHub = exports.fetchHubById = exports.createHub = exports.changeHubStatus = exports.fetchHubs = exports.suspendUser = exports.dissolveSlash = exports.searchSlash = exports.getStats = exports.getUserById = exports.searchUsers = exports.fetchAllUsers = void 0;
+exports.generatePin = exports.changeAttendantStatus = exports.resetAttendantPin = exports.fetchAttendants = exports.createAttendant = exports.asignAttendantToHub = exports.fetchHubById = exports.createHub = exports.changeHubStatus = exports.fetchHubs = exports.suspendUser = exports.dissolveSlash = exports.searchSlash = exports.getStats = exports.getUserById = exports.searchUsers = exports.fetchAllUsers = void 0;
 const responseService_1 = require("../../utils/responseService");
 const modifyResponse_1 = require("../../utils/modifyResponse");
 const joi_1 = __importDefault(require("joi"));
@@ -464,19 +464,21 @@ const createAttendant = async (req, res) => {
         const { name, phone, email } = req.body;
         const { error } = joi_1.default.object({
             // hubId: validationSchema.objectId,
-            name: validationSchema_1.default.name,
+            name: validationSchema_1.default.strings,
             phone: validationSchema_1.default.phoneNumber,
             email: validationSchema_1.default.email,
         }).validate(req.body);
         if (error)
             return (0, responseService_1.resSender)(res, 400, 'fail', error.details[0].message);
-        const { hashedPin, pin } = generatePin();
-        let hub = null;
+        console.log('Validation DOne');
+        const { hashedPin, pin } = (0, exports.generatePin)();
+        // let hub: IHub | null = null;
         // Find hub
         // if (hubId) {
         //   hub = await Hub.findById(hubId);
         //   if (!hub) console.log('Hub does not exist'); // return resSender(res, 404, 'fail', 'Hub not found!');
         // }
+        console.log('Got here!');
         const newAttendant = new hubAttendant_1.Attendant({
             name,
             phone,
@@ -489,6 +491,7 @@ const createAttendant = async (req, res) => {
         await newAttendant.save();
         // hub?.attendant = newAttendant._id;
         // await hub.save();
+        console.log('Saved');
         return (0, responseService_1.resSender)(res, 201, 'success', 'Attendant created!', null, {
             attendant: (0, modifyResponse_1.modifyUserResponse)(newAttendant),
             pin,
@@ -517,7 +520,7 @@ const resetAttendantPin = async (req, res) => {
         }).validate(req.params);
         if (error)
             return (0, responseService_1.resSender)(res, 400, 'fail', error.details[0].message);
-        const { hashedPin, pin } = generatePin();
+        const { hashedPin, pin } = (0, exports.generatePin)();
         const attendant = await hubAttendant_1.Attendant.findByIdAndUpdate(id, {
             $set: { password: hashedPin },
         });
@@ -558,3 +561,4 @@ const generatePin = () => {
     const hashedPin = bcryptjs_1.default.hashSync(pin, bcryptjs_1.default.genSaltSync(15));
     return { hashedPin, pin };
 };
+exports.generatePin = generatePin;

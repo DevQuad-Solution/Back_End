@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getAccount = exports.resetPassword = exports.sendCode = exports.signin = exports.onboarding = exports.verifyCode = exports.signup = exports.getMe = void 0;
+exports.getAccount = exports.resetPassword = exports.sendCode = exports.attendantSignin = exports.adminSignin = exports.signin = exports.onboarding = exports.verifyCode = exports.signup = exports.getMe = void 0;
 const responseService_1 = require("../../utils/responseService");
 const modifyResponse_1 = require("../../utils/modifyResponse");
 const joi_1 = __importDefault(require("joi"));
@@ -213,6 +213,102 @@ const signin = async (req, res) => {
     }
 };
 exports.signin = signin;
+const adminSignin = async (req, res) => {
+    try {
+        const { identifier, password } = req.body;
+        const { error } = joi_1.default.object({
+            identifier: validationSchema_1.default.identifier,
+            password: validationSchema_1.default.password,
+        }).validate(req.body);
+        if (error)
+            return (0, responseService_1.resSender)(res, 400, 'fail', error.details[0].message);
+        if (!identifier || !password) {
+            return (0, responseService_1.resSender)(res, 400, 'fail', 'Email/phone and password are required');
+        }
+        // Check if the user exists
+        let admin = await account_1.Admin.findOne({
+            $or: [{ email: identifier }, { phone: identifier }],
+        });
+        if (!admin) {
+            return (0, responseService_1.resSender)(res, 403, 'fail', 'Invalid Credentials');
+        }
+        const isPasswordValid = await bcryptjs_1.default.compare(password, admin.password);
+        if (!isPasswordValid) {
+            return (0, responseService_1.resSender)(res, 403, 'fail', 'Invalid Credentials');
+        }
+        // Generate a JWT token
+        let payload = {
+            userId: admin._id.toString(),
+            email: admin.email,
+            role: admin.role,
+        };
+        const [accessToken, refreshToken] = await Promise.all([
+            (0, tokenService_1.generateToken)(payload, jwtAccess, {
+                expiresIn: '30d',
+            }),
+            (0, tokenService_1.generateToken)(payload, jwtRefresh, {
+                expiresIn: '30d',
+            }),
+        ]);
+        await (0, tokenService_1.saveCookies)(res, 'rfst_tkn', refreshToken);
+        return (0, responseService_1.resSender)(res, 200, 'success', 'Sign In Successful', null, {
+            admin: (0, modifyResponse_1.modifyUserResponse)(admin),
+            accessToken,
+        });
+    }
+    catch (error) {
+        return (0, responseService_1.errorHandler)(error, res, 'Error signing in!');
+    }
+};
+exports.adminSignin = adminSignin;
+const attendantSignin = async (req, res) => {
+    try {
+        const { identifier, password } = req.body;
+        const { error } = joi_1.default.object({
+            identifier: validationSchema_1.default.identifier,
+            password: validationSchema_1.default.password,
+        }).validate(req.body);
+        if (error)
+            return (0, responseService_1.resSender)(res, 400, 'fail', error.details[0].message);
+        if (!identifier || !password) {
+            return (0, responseService_1.resSender)(res, 400, 'fail', 'Email/phone and password are required');
+        }
+        // Check if the user exists
+        let att = await hubAttendant_1.Attendant.findOne({
+            $or: [{ email: identifier }, { phone: identifier }],
+        });
+        if (!att) {
+            return (0, responseService_1.resSender)(res, 403, 'fail', 'Invalid Credentials');
+        }
+        const isPasswordValid = await bcryptjs_1.default.compare(password, att.password);
+        if (!isPasswordValid) {
+            return (0, responseService_1.resSender)(res, 403, 'fail', 'Invalid Credentials');
+        }
+        // Generate a JWT token
+        let payload = {
+            userId: att._id.toString(),
+            email: att.email,
+            role: att.role,
+        };
+        const [accessToken, refreshToken] = await Promise.all([
+            (0, tokenService_1.generateToken)(payload, jwtAccess, {
+                expiresIn: '30d',
+            }),
+            (0, tokenService_1.generateToken)(payload, jwtRefresh, {
+                expiresIn: '30d',
+            }),
+        ]);
+        await (0, tokenService_1.saveCookies)(res, 'rfst_tkn', refreshToken);
+        return (0, responseService_1.resSender)(res, 200, 'success', 'Sign In Successful', null, {
+            attendant: (0, modifyResponse_1.modifyUserResponse)(att),
+            accessToken,
+        });
+    }
+    catch (error) {
+        return (0, responseService_1.errorHandler)(error, res, 'Error signing in!');
+    }
+};
+exports.attendantSignin = attendantSignin;
 /**
  * @param email Account email
  * @param reason Reason for code request

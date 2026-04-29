@@ -43,7 +43,7 @@ route.patch('/admin/hubs/:id/status', authMiddleware, requireRole('admin'), chan
 
 // Hub Attendant Routes
 route.post(
-  '/admin/hubs/:hubId/attendant',
+  '/admin/hubs/attendant',
   authMiddleware,
   requireRole('admin'),
   asignAttendantToHub,

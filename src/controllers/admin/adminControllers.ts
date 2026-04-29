@@ -527,20 +527,23 @@ export const createAttendant = async (req: Request, res: Response) => {
     const { name, phone, email } = req.body;
     const { error } = Joi.object({
       // hubId: validationSchema.objectId,
-      name: validationSchema.name,
+      name: validationSchema.strings,
       phone: validationSchema.phoneNumber,
       email: validationSchema.email,
     }).validate(req.body);
     if (error) return resSender(res, 400, 'fail', error.details[0].message);
+    console.log('Validation DOne');
 
     const { hashedPin, pin } = generatePin();
-    let hub: IHub | null = null;
+    // let hub: IHub | null = null;
 
     // Find hub
     // if (hubId) {
     //   hub = await Hub.findById(hubId);
     //   if (!hub) console.log('Hub does not exist'); // return resSender(res, 404, 'fail', 'Hub not found!');
     // }
+
+    console.log('Got here!');
 
     const newAttendant = new Attendant({
       name,
@@ -555,6 +558,7 @@ export const createAttendant = async (req: Request, res: Response) => {
 
     // hub?.attendant = newAttendant._id;
     // await hub.save();
+    console.log('Saved')
 
     return resSender(res, 201, 'success', 'Attendant created!', null, {
       attendant: modifyUserResponse(newAttendant),
@@ -616,7 +620,7 @@ export const changeAttendantStatus = async (req: Request, res: Response) => {
   }
 };
 
-const generatePin = () => {
+export const generatePin = () => {
   let pin = Math.floor(100000 + Math.random() * 900000).toString();
   const hashedPin = bcrypt.hashSync(pin, bcrypt.genSaltSync(15));
   return { hashedPin, pin };

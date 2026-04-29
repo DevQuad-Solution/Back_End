@@ -7,6 +7,8 @@ const route = (0, express_1.Router)();
 route.post('/auth/', authControllers_1.signup);
 route.post('/auth/onboarding', authControllers_1.onboarding);
 route.post('/auth/signin', authControllers_1.signin);
+route.post('/auth/attendant/signin', authControllers_1.attendantSignin);
+route.post('/auth/admin/signin', authControllers_1.adminSignin);
 route.post('/auth/code', authControllers_1.sendCode);
 route.post('/auth/verify-code', authControllers_1.verifyCode);
 route.post('/auth/reset-password', authControllers_1.resetPassword);

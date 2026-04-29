@@ -72,7 +72,7 @@ const attendantSchema = new Schema(
     emailVerified: { type: Boolean, default: false },
     password: { type: String, required: true },
     hub: { type: Types.ObjectId, ref: 'Hub' },
-    status: { type: String, enum: Object.values(HubStatus), default: 'Inactive' },
+    status: { type: String, enum: Object.values(HubStatus), default: HubStatus.INACTIVE },
     role: { type: String, default: 'attendant' },
     ratings: {
       rating: { type: Number, default: 0 },

@@ -247,6 +247,58 @@
               },
             },
           },
+          '/api/auth/admin/signin': {
+            post: {
+              tags: ['Authentication'],
+              summary: 'Admin signin',
+              description: 'Login with email/phone and password',
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        identifier: { type: 'string', description: 'Email or phone number' },
+                        password: { type: 'string', format: 'password' },
+                      },
+                      required: ['identifier', 'password'],
+                    },
+                  },
+                },
+              },
+              responses: {
+                200: { description: 'Login successful' },
+                400: { description: 'Invalid credentials' },
+              },
+            },
+          },
+          '/api/auth/attendant/signin': {
+            post: {
+              tags: ['Authentication'],
+              summary: 'User signin',
+              description: 'Login with email/phone and password',
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        identifier: { type: 'string', description: 'Email or phone number' },
+                        password: { type: 'string', format: 'password' },
+                      },
+                      required: ['identifier', 'password'],
+                    },
+                  },
+                },
+              },
+              responses: {
+                200: { description: 'Login successful' },
+                400: { description: 'Invalid credentials' },
+              },
+            },
+          },
           '/api/auth/code': {
             post: {
               tags: ['Authentication'],
