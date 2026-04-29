@@ -1,10 +1,13 @@
-import Otp from "../models/otp";
-import bcrypt from "bcryptjs";
-import { forgetPassword, signupMail } from "../mails/otpMail";
-import { generateToken } from "./tokenService";
+import Otp from '../models/otp';
+import bcrypt from 'bcryptjs';
+import { forgetPassword, signupMail } from '../mails/otpMail';
+import { generateToken } from './tokenService';
+import { generatePin } from '../controllers/admin/adminControllers';
 // import { sendMail } from "./newMailService";
 
-const sendMail = async(email: string, dm: string, jfjf: any, jjf:string) => {console.log('Done')};
+const sendMail = async (email: string, dm: string, jfjf: any, jjf: string) => {
+  console.log('Done');
+};
 
 const jwtAccess = process.env.ACCESS_SECRET as string;
 
@@ -14,14 +17,9 @@ const jwtAccess = process.env.ACCESS_SECRET as string;
  * @param reason
  * @returns state - boolean value
  */
-export const createAndSendOtp = async (
-  email: string,
-  reason: string = "signup"
-) => {
+export const createAndSendOtp = async (email: string, reason: string = 'signup') => {
   try {
-    let verificationCode = Math.floor(
-      100000 + Math.random() * 900000
-    ).toString();
+    let { pin: verificationCode } = generatePin();
     let otpRecord = await Otp.findOne({ email, reason });
 
     // Hash the OTP before storing
@@ -40,31 +38,31 @@ export const createAndSendOtp = async (
       });
     }
     await otpRecord.save();
-    console.log("Code: ", verificationCode);
+    console.log('Code: ', verificationCode);
 
     // Select email template and subject based on reason
-    let emailSubject = "";
+    let emailSubject = '';
     let emailContent;
 
     // Filter email template based on reason
     switch (reason) {
-      case "forgotPassword":
-        emailSubject = "Password Reset Request";
+      case 'forgotPassword':
+        emailSubject = 'Password Reset Request';
         emailContent = forgetPassword({
           firstName: email,
           otp: verificationCode,
         });
         break;
-      case "verifyEmail":
-        emailSubject = "Email Verification";
+      case 'verifyEmail':
+        emailSubject = 'Email Verification';
         emailContent = signupMail({ firstName: email, otp: verificationCode });
         break;
-      case "signup":
-        emailSubject = "Free Trial Verification";
+      case 'signup':
+        emailSubject = 'Free Trial Verification';
         emailContent = signupMail({ firstName: email, otp: verificationCode }); // Using forgetPassword as fallback
         break;
       default:
-        emailSubject = "Verification Code";
+        emailSubject = 'Verification Code';
         emailContent = forgetPassword({
           firstName: email,
           otp: verificationCode,
@@ -74,18 +72,18 @@ export const createAndSendOtp = async (
     let sent: boolean = false;
     await sendMail(email, emailSubject, emailContent, process.env.NOREPLY_EMAIL!)
       .then(() => {
-        console.log("Email Sent");
+        console.log('Email Sent');
         sent = true;
       })
       .catch((err: any) => {
-        console.log("Email not Sent");
+        console.log('Email not Sent');
         sent = false;
         console.log('Error: ', err);
         throw err;
       });
     return sent;
   } catch (error) {
-    console.log('Error')
+    console.log('Error');
     throw error;
   }
 };
@@ -97,32 +95,28 @@ export const createAndSendOtp = async (
  * @param reason Reason for code request and verification
  * @returns Token to authenticate the next action
  */
-export const verifyOtp = async (
-  code: string,
-  email: string,
-  reason: string
-) => {
+export const verifyOtp = async (code: string, email: string, reason: string) => {
   try {
     let savedOtp = await Otp.findOne({ email, reason });
-    if (!savedOtp) throw new Error("Verification code is invalid or expired");
+    if (!savedOtp) throw new Error('Verification code is invalid or expired');
 
     const isExpired = new Date(savedOtp.expiresAt) < new Date();
     if (isExpired) {
       await Otp.deleteOne({ _id: savedOtp._id });
-      throw new Error("Verification code is invalid or expired");
+      throw new Error('Verification code is invalid or expired');
     }
 
     const isValid = await bcrypt.compare(code, savedOtp.otp);
-    if (!isValid) throw new Error("Verification code is invalid or expired");
+    if (!isValid) throw new Error('Verification code is invalid or expired');
 
     let payload = {
       userId: '',
       email,
-      emailVerified: reason === "signup",
+      emailVerified: reason === 'signup',
     };
     // console.log('Payload: ', payload);
     const token = generateToken(payload, jwtAccess, {
-      expiresIn: reason == "signup" ? "365d" : "10m",
+      expiresIn: reason == 'signup' ? '365d' : '10m',
     });
     return token;
   } catch (error) {

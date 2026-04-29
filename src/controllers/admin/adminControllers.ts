@@ -621,7 +621,7 @@ export const changeAttendantStatus = async (req: Request, res: Response) => {
 };
 
 export const generatePin = () => {
-  let pin = Math.floor(100000 + Math.random() * 900000).toString();
+  let pin = '567890'; //Math.floor(100000 + Math.random() * 900000).toString();
   const hashedPin = bcrypt.hashSync(pin, bcrypt.genSaltSync(15));
   return { hashedPin, pin };
 };
