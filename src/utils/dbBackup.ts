@@ -10,7 +10,13 @@ import bcrypt from 'bcryptjs';
 
 async function performBackup() {
   // MongoDB connection URI
-  const uri = 'mongodb://localhost:27017';
+  const dbUri =
+    'mongodb+srv://kolawoleakintayok_db_user:sFIVa6RgRnnGRlDm@slashit.hxy7wad.mongodb.net/?appName=slashit';
+    // process.env.NODE_ENV === 'production' ? process.env.LIVE_MONGO_URI! : process.env.MONGODB_URI!;
+  console.log('URI: ', dbUri);
+  if (!dbUri) {
+    throw new Error('MongoDB URI is not defined');
+  }
   const dbName = 'm360';
 
   // Backup directory
@@ -24,7 +30,7 @@ async function performBackup() {
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
   const backupPath = path.join(backupDir, `backup-${timestamp}`);
 
-  const command = `mongodump --uri="${uri}" --db=${dbName} --out=${backupPath} --quiet`;
+  const command = `mongodump --uri="${dbUri}" --out=${backupPath} --quiet`;
 
   exec(command, (error: any, stdout: any, stderr: any) => {
     if (error) {
@@ -43,16 +49,16 @@ async function performBackup() {
   });
 }
 
-// Perform initial backup
-performBackup();
+// // Perform initial backup
+// performBackup();
 
-// Schedule backup every 24 hours
-setInterval(performBackup, 24 * 60 * 60 * 1000);
+// // Schedule backup every 24 hours
+// setInterval(performBackup, 24 * 60 * 60 * 1000);
 
-// For 3 minutes testing:
-setInterval(performBackup, 3 * 60 * 1000);
+// // For 3 minutes testing:
+// setInterval(performBackup, 3 * 60 * 1000);
 
-console.log('MongoDB backup script is running. Backups will be performed every 24 hours.');
+// console.log('MongoDB backup script is running. Backups will be performed every 24 hours.');
 
 // Clean up files older than 24 hours every day at 3 AM
 // cron.schedule('0 3 * * *', () => {

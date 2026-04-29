@@ -7,7 +7,7 @@
     <link
       rel="stylesheet"
       type="text/css"
-      href="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.0.1/swagger-ui.min.css"
+      href="https://unpkg.com/swagger-ui-dist@5.10.3/swagger-ui.css"
     />
     <style>
       html {
@@ -24,7 +24,8 @@
   </head>
   <body>
     <div id="swagger-ui"></div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.0.1/swagger-ui.min.js"></script>
+    <script src="https://unpkg.com/swagger-ui-dist@5.10.3/swagger-ui-bundle.js"></script>
+    <script src="https://unpkg.com/swagger-ui-dist@5.10.3/swagger-ui-standalone-preset.js"></script>
     <script>
       const spec = {
         openapi: '3.0.0',
@@ -47,8 +48,8 @@
             description: 'Development Server',
           },
           {
-            url: 'https://api.slashit.com',
-            description: 'Production Server',
+            url: 'https://slashit-g2og.onrender.com',
+            description: 'Test Production Server',
           },
         ],
         components: {
@@ -912,7 +913,7 @@
           spec: spec,
           dom_id: '#swagger-ui',
           deepLinking: true,
-          presets: [SwaggerUIBundle.presets.apis, SwaggerUIBundle.SwaggerUIStandalonePreset],
+          presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],
           plugins: [SwaggerUIBundle.plugins.DownloadUrl],
           layout: 'StandaloneLayout',
         });

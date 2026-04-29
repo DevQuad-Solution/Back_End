@@ -213,7 +213,7 @@ export const signin = async (req: Request, res: Response) => {
     let payload = {
       userId: user._id.toString(),
       email: user.email,
-      role: user.role
+      role: user.role,
     };
 
     const [accessToken, refreshToken] = await Promise.all([

@@ -9,14 +9,15 @@ import connectToDatabase from './config/db';
 import { readdirSync } from 'fs';
 import path from 'path';
 import { resSender } from './utils/responseService';
-
-// Database backup
-import './utils/dbBackup';
 import { useSocket } from './utils/websocket';
 import { reqRateLimit } from './middlewares/rateLimiter';
 
 // Load environment variables
 dotenv.config();
+
+// Database backup
+import './utils/dbBackup';
+import helmetConfig from './config/helmet';
 
 const app: Application = express();
 const server = http.createServer(app);
@@ -25,38 +26,13 @@ const PORT = process.env.PORT || 5004;
 // Init socket.io
 useSocket(server);
 
-// Middleware
-
-// Configure CSP for Swagger UI
+// Apply helmet with CSP that allows external resources
 app.use(
-  helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: [
-          "'self'",
-          "'unsafe-inline'", // Required for Swagger UI
-          'https://unpkg.com',
-        ],
-        styleSrc: [
-          "'self'",
-          "'unsafe-inline'", // Required for Swagger UI
-          'https://unpkg.com',
-        ],
-        imgSrc: ["'self'", 'data:', 'https:'],
-        connectSrc: ["'self'", 'https://unpkg.com', 'https://*.swagger.io'],
-        fontSrc: ["'self'", 'https:', 'data:'],
-        objectSrc: ["'none'"],
-        baseUri: ["'self'"],
-        formAction: ["'self'"],
-        frameAncestors: ["'none'"],
-      },
-    },
-  }),
+  helmet(helmetConfig),
 );
 
 app.use(cors(corsOptions));
-app.use(reqRateLimit); // Apply rate-limit
+app.use(reqRateLimit);
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -77,31 +53,28 @@ app.get('/api/test', (req, res) => {
   return resSender(res, 200, 'success', 'Test route is working!');
 });
 
-// API Documentation endpoint
+// API Documentation endpoint - with disabled CSP for this route only
 app.get('/api/v1/docs', (req: Request, res: Response) => {
+  // Remove CSP for this route by setting appropriate headers
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; script-src * 'unsafe-inline' 'unsafe-eval' data: blob:; style-src * 'unsafe-inline'; connect-src * 'unsafe-inline'; img-src * data: blob:; font-src * data:;",
+  );
   const docsPath = path.join(__dirname, 'public', 'docs.html');
   res.sendFile(docsPath);
 });
 
 // Api Routes
-
-// console.log('Looking for routes in:', path.join(__dirname, 'Routes'));
-// console.log('Found files:', readdirSync(path.join(__dirname, 'Routes')));
-// Register routes dynamically from the 'Routes' directory
 const routeFiles = readdirSync(path.join(__dirname, 'routes'));
 for (const file of routeFiles) {
   if (file.endsWith('.js') || (process.env.NODE_ENV === 'development' && file.endsWith('.ts'))) {
     const routePath = path.join(__dirname, 'routes', file);
-    /* eslint-disable @typescript-eslint/no-var-requires */
     const route = require(routePath).default;
-    // console.log('Route 2: ', route);
 
     if (route) {
       app.use('/api', route);
-      // console.log(`Registered routes from ${file}`);
     }
 
-    // Log the routes that were registered
     if (route && route.stack) {
       // logger.info(`Routes in ${file}:`, route.stack.map((r: any) => r.route?.path).filter(Boolean));
     }
@@ -110,7 +83,7 @@ for (const file of routeFiles) {
 
 // Catch unhandled routes
 app.use((req, res, next) => {
-    return resSender(res, 404, 'error', 'Route not found!');
+  return resSender(res, 404, 'error', 'Route not found!');
 });
 
 // connect db and start server

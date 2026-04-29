@@ -13,7 +13,12 @@ const account_1 = require("../models/account");
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 async function performBackup() {
     // MongoDB connection URI
-    const uri = 'mongodb://localhost:27017';
+    const dbUri = 'mongodb+srv://kolawoleakintayok_db_user:sFIVa6RgRnnGRlDm@slashit.hxy7wad.mongodb.net/?appName=slashit';
+    // process.env.NODE_ENV === 'production' ? process.env.LIVE_MONGO_URI! : process.env.MONGODB_URI!;
+    console.log('URI: ', dbUri);
+    if (!dbUri) {
+        throw new Error('MongoDB URI is not defined');
+    }
     const dbName = 'm360';
     // Backup directory
     const backupDir = path_1.default.join(__dirname, '..', '..', 'backups');
@@ -23,7 +28,7 @@ async function performBackup() {
     }
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const backupPath = path_1.default.join(backupDir, `backup-${timestamp}`);
-    const command = `mongodump --uri="${uri}" --db=${dbName} --out=${backupPath} --quiet`;
+    const command = `mongodump --uri="${dbUri}" --out=${backupPath} --quiet`;
     (0, child_process_1.exec)(command, (error, stdout, stderr) => {
         if (error) {
             console.error(`Backup failed with exit code ${error.code}: ${error.message}`);
@@ -39,13 +44,13 @@ async function performBackup() {
         }
     });
 }
-// Perform initial backup
-performBackup();
-// Schedule backup every 24 hours
-setInterval(performBackup, 24 * 60 * 60 * 1000);
-// For 3 minutes testing:
-setInterval(performBackup, 3 * 60 * 1000);
-console.log('MongoDB backup script is running. Backups will be performed every 24 hours.');
+// // Perform initial backup
+// performBackup();
+// // Schedule backup every 24 hours
+// setInterval(performBackup, 24 * 60 * 60 * 1000);
+// // For 3 minutes testing:
+// setInterval(performBackup, 3 * 60 * 1000);
+// console.log('MongoDB backup script is running. Backups will be performed every 24 hours.');
 // Clean up files older than 24 hours every day at 3 AM
 // cron.schedule('0 3 * * *', () => {
 //   const cutoff = Date.now() - 24 * 60 * 60 * 1000;

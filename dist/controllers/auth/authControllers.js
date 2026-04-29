@@ -192,7 +192,7 @@ const signin = async (req, res) => {
         let payload = {
             userId: user._id.toString(),
             email: user.email,
-            role: user.role
+            role: user.role,
         };
         const [accessToken, refreshToken] = await Promise.all([
             (0, tokenService_1.generateToken)(payload, jwtAccess, {

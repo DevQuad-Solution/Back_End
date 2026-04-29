@@ -14,45 +14,22 @@ const db_1 = __importDefault(require("./config/db"));
 const fs_1 = require("fs");
 const path_1 = __importDefault(require("path"));
 const responseService_1 = require("./utils/responseService");
-// Database backup
-require("./utils/dbBackup");
 const websocket_1 = require("./utils/websocket");
 const rateLimiter_1 = require("./middlewares/rateLimiter");
 // Load environment variables
 dotenv_1.default.config();
+// Database backup
+require("./utils/dbBackup");
+const helmet_2 = __importDefault(require("./config/helmet"));
 const app = (0, express_1.default)();
 const server = http_1.default.createServer(app);
 const PORT = process.env.PORT || 5004;
 // Init socket.io
 (0, websocket_1.useSocket)(server);
-// Middleware
-// Configure CSP for Swagger UI
-app.use((0, helmet_1.default)({
-    contentSecurityPolicy: {
-        directives: {
-            defaultSrc: ["'self'"],
-            scriptSrc: [
-                "'self'",
-                "'unsafe-inline'", // Required for Swagger UI
-                'https://unpkg.com',
-            ],
-            styleSrc: [
-                "'self'",
-                "'unsafe-inline'", // Required for Swagger UI
-                'https://unpkg.com',
-            ],
-            imgSrc: ["'self'", 'data:', 'https:'],
-            connectSrc: ["'self'", 'https://unpkg.com', 'https://*.swagger.io'],
-            fontSrc: ["'self'", 'https:', 'data:'],
-            objectSrc: ["'none'"],
-            baseUri: ["'self'"],
-            formAction: ["'self'"],
-            frameAncestors: ["'none'"],
-        },
-    },
-}));
+// Apply helmet with CSP that allows external resources
+app.use((0, helmet_1.default)(helmet_2.default));
 app.use((0, cors_1.default)(cors_2.default));
-app.use(rateLimiter_1.reqRateLimit); // Apply rate-limit
+app.use(rateLimiter_1.reqRateLimit);
 app.use((0, morgan_1.default)('dev'));
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
@@ -69,27 +46,22 @@ app.get('/health', (req, res) => {
 app.get('/api/test', (req, res) => {
     return (0, responseService_1.resSender)(res, 200, 'success', 'Test route is working!');
 });
-// API Documentation endpoint
+// API Documentation endpoint - with disabled CSP for this route only
 app.get('/api/v1/docs', (req, res) => {
+    // Remove CSP for this route by setting appropriate headers
+    res.setHeader('Content-Security-Policy', "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; script-src * 'unsafe-inline' 'unsafe-eval' data: blob:; style-src * 'unsafe-inline'; connect-src * 'unsafe-inline'; img-src * data: blob:; font-src * data:;");
     const docsPath = path_1.default.join(__dirname, 'public', 'docs.html');
     res.sendFile(docsPath);
 });
 // Api Routes
-// console.log('Looking for routes in:', path.join(__dirname, 'Routes'));
-// console.log('Found files:', readdirSync(path.join(__dirname, 'Routes')));
-// Register routes dynamically from the 'Routes' directory
 const routeFiles = (0, fs_1.readdirSync)(path_1.default.join(__dirname, 'routes'));
 for (const file of routeFiles) {
     if (file.endsWith('.js') || (process.env.NODE_ENV === 'development' && file.endsWith('.ts'))) {
         const routePath = path_1.default.join(__dirname, 'routes', file);
-        /* eslint-disable @typescript-eslint/no-var-requires */
         const route = require(routePath).default;
-        // console.log('Route 2: ', route);
         if (route) {
             app.use('/api', route);
-            // console.log(`Registered routes from ${file}`);
         }
-        // Log the routes that were registered
         if (route && route.stack) {
             // logger.info(`Routes in ${file}:`, route.stack.map((r: any) => r.route?.path).filter(Boolean));
         }
