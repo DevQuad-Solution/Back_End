@@ -20,7 +20,9 @@ async function connectToDatabase(): Promise<typeof mongoose> {
       throw new Error('MongoDB URI is not defined');
     }
 
-    const db = await mongoose.connect(dbUri);
+    const db = await mongoose.connect(dbUri, {
+      dbName: process.env.NODE_ENV === 'production' ? 'production' : undefined,
+    });
     cachedDb = db;
     console.log('⚡️[server]: Connected to MongoDB');
     return db;
