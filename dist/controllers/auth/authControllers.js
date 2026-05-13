@@ -54,8 +54,8 @@ const signup = async (req, res) => {
             hub: undefined,
         });
         // Send 6 digit code to the email
-        const emaialSent = await (0, otpService_1.createAndSendOtp)(email, 'signup');
-        return (0, responseService_1.resSender)(res, 201, 'success', 'Account created!');
+        const emaialSent = await (0, otpService_1.createAndSendOtp)(fullName, email, 'signup');
+        return (0, responseService_1.resSender)(res, 201, 'success', 'Email Sent, verify code next!');
     }
     catch (error) {
         return (0, responseService_1.errorHandler)(error, res, 'Error signing up!');
@@ -327,7 +327,7 @@ const sendCode = async (req, res) => {
             console.log('User Email does not exist');
             return (0, responseService_1.resSender)(res, 200, 'success', 'Verification Code will be sent to your mail, if it exists!');
         }
-        const emailSent = await (0, otpService_1.createAndSendOtp)(existingMail.email, reason);
+        const emailSent = await (0, otpService_1.createAndSendOtp)(existingMail.name, existingMail.email, reason);
         return (0, responseService_1.resSender)(res, 200, 'success', 'Verification Code will be sent to your mail, if it exists!');
     }
     catch (error) {

@@ -3,11 +3,7 @@ import bcrypt from 'bcryptjs';
 import { forgetPassword, signupMail } from '../mails/otpMail';
 import { generateToken } from './tokenService';
 import { generatePin } from '../controllers/admin/adminControllers';
-// import { sendMail } from "./newMailService";
-
-const sendMail = async (email: string, dm: string, jfjf: any, jjf: string) => {
-  console.log('Done');
-};
+import { EmailData, sendMail } from "./emailService";
 
 const jwtAccess = process.env.ACCESS_SECRET as string;
 
@@ -17,7 +13,7 @@ const jwtAccess = process.env.ACCESS_SECRET as string;
  * @param reason
  * @returns state - boolean value
  */
-export const createAndSendOtp = async (email: string, reason: string = 'signup') => {
+export const createAndSendOtp = async (name: string, email: string, reason: string = 'signup') => {
   try {
     let { pin: verificationCode } = generatePin();
     let otpRecord = await Otp.findOne({ email, reason });
@@ -70,21 +66,23 @@ export const createAndSendOtp = async (email: string, reason: string = 'signup')
     }
 
     let sent: boolean = false;
-    await sendMail(email, emailSubject, emailContent, process.env.NOREPLY_EMAIL!)
-      .then(() => {
-        console.log('Email Sent');
-        sent = true;
-      })
-      .catch((err: any) => {
-        console.log('Email not Sent');
-        sent = false;
-        console.log('Error: ', err);
-        throw err;
-      });
+    const emailData: EmailData = {
+      subject: emailSubject,
+      message: emailContent,
+      mailType: 'html',
+      recipients: [{ address: email, name }],
+    };
+
+    const data = await sendMail(emailData);
+
+    console.log('Data rec: ', data);
+    console.log('Email Sent');
+    sent = true;
     return sent;
   } catch (error) {
-    console.log('Error');
-    throw error;
+    // console.log('Error', error);
+    console.log('Email not sent');
+    return false;
   }
 };
 

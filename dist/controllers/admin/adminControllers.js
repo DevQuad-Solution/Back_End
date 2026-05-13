@@ -292,7 +292,7 @@ const fetchHubs = async (req, res) => {
     try {
         let { query, status = 'all', page, limit, } = req.query;
         const { error } = joi_1.default.object({
-            query: validationSchema_1.default.strings.required(), // Make query required for search
+            query: validationSchema_1.default.text,
             status: validationSchema_1.default.strings.optional().valid('all', 'active', 'inactive', 'suspended'),
             page: validationSchema_1.default.number,
             limit: validationSchema_1.default.number,
@@ -351,9 +351,13 @@ const changeHubStatus = async (req, res) => {
         const hub = await hubAttendant_1.Hub.findById(hubId);
         if (!hub)
             return (0, responseService_1.resSender)(res, 404, 'fail', 'Hub not found!');
+        console.log('Hub found!');
         if (hub.status === status)
             return (0, responseService_1.resSender)(res, 403, 'fail', `Hub status is already ${hub.status}`);
+        console.log('Not matched!');
         hub.status = status;
+        console.log('assigned!');
+        await hub.save();
         return (0, responseService_1.resSender)(res, 200, 'success', 'Status changed!');
     }
     catch (error) {
@@ -416,7 +420,7 @@ const fetchHubById = async (req, res) => {
         });
         return (0, responseService_1.resSender)(res, 200, 'success', 'Hub fetched!', null, {
             hub: {
-                ...hub,
+                ...hub._doc,
                 averageRating,
                 totalReviews: totalRatings,
                 slashToday,
@@ -549,6 +553,7 @@ const changeAttendantStatus = async (req, res) => {
         if (attendant.status === status)
             return (0, responseService_1.resSender)(res, 403, 'fail', `Attendant status is already ${attendant.status}`);
         attendant.status = status;
+        await attendant.save();
         return (0, responseService_1.resSender)(res, 200, 'success', 'Attendant status changed!');
     }
     catch (error) {

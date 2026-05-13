@@ -9,10 +9,7 @@ const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const otpMail_1 = require("../mails/otpMail");
 const tokenService_1 = require("./tokenService");
 const adminControllers_1 = require("../controllers/admin/adminControllers");
-// import { sendMail } from "./newMailService";
-const sendMail = async (email, dm, jfjf, jjf) => {
-    console.log('Done');
-};
+const emailService_1 = require("./emailService");
 const jwtAccess = process.env.ACCESS_SECRET;
 /**
  *
@@ -20,7 +17,7 @@ const jwtAccess = process.env.ACCESS_SECRET;
  * @param reason
  * @returns state - boolean value
  */
-const createAndSendOtp = async (email, reason = 'signup') => {
+const createAndSendOtp = async (name, email, reason = 'signup') => {
     try {
         let { pin: verificationCode } = (0, adminControllers_1.generatePin)();
         let otpRecord = await otp_1.default.findOne({ email, reason });
@@ -69,22 +66,22 @@ const createAndSendOtp = async (email, reason = 'signup') => {
                 }); // Default to forgetPassword
         }
         let sent = false;
-        await sendMail(email, emailSubject, emailContent, process.env.NOREPLY_EMAIL)
-            .then(() => {
-            console.log('Email Sent');
-            sent = true;
-        })
-            .catch((err) => {
-            console.log('Email not Sent');
-            sent = false;
-            console.log('Error: ', err);
-            throw err;
-        });
+        const emailData = {
+            subject: emailSubject,
+            message: emailContent,
+            mailType: 'html',
+            recipients: [{ address: email, name }],
+        };
+        const data = await (0, emailService_1.sendMail)(emailData);
+        console.log('Data rec: ', data);
+        console.log('Email Sent');
+        sent = true;
         return sent;
     }
     catch (error) {
-        console.log('Error');
-        throw error;
+        // console.log('Error', error);
+        console.log('Email not sent');
+        return false;
     }
 };
 exports.createAndSendOtp = createAndSendOtp;

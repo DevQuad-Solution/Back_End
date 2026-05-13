@@ -19,11 +19,11 @@ route.delete('/admin/slashes/:id/dissolve', authMiddleware_1.authMiddleware, (0,
 route.get('/admin/hubs', authMiddleware_1.authMiddleware, (0, roleMiddleware_1.requireRole)('admin'), adminControllers_1.fetchHubs);
 route.post('/admin/hubs', authMiddleware_1.authMiddleware, (0, roleMiddleware_1.requireRole)('admin'), adminControllers_1.createHub);
 route.get('/admin/hubs/:id', authMiddleware_1.authMiddleware, (0, roleMiddleware_1.requireRole)('admin'), adminControllers_1.fetchHubById);
-route.patch('/admin/hubs/:id/status', authMiddleware_1.authMiddleware, (0, roleMiddleware_1.requireRole)('admin'), adminControllers_1.changeHubStatus);
+route.patch('/admin/hubs/status', authMiddleware_1.authMiddleware, (0, roleMiddleware_1.requireRole)('admin'), adminControllers_1.changeHubStatus);
 // Hub Attendant Routes
 route.post('/admin/hubs/attendant', authMiddleware_1.authMiddleware, (0, roleMiddleware_1.requireRole)('admin'), adminControllers_1.asignAttendantToHub);
 route.post('/admin/attendants', authMiddleware_1.authMiddleware, (0, roleMiddleware_1.requireRole)('admin'), adminControllers_1.createAttendant);
 route.get('/admin/attendants', authMiddleware_1.authMiddleware, (0, roleMiddleware_1.requireRole)('admin'), adminControllers_1.fetchAttendants);
 route.patch('/admin/attendants/:id/pin', authMiddleware_1.authMiddleware, (0, roleMiddleware_1.requireRole)('admin'), adminControllers_1.resetAttendantPin);
-route.patch('/admin/attendants/:id/status', authMiddleware_1.authMiddleware, (0, roleMiddleware_1.requireRole)('admin'), adminControllers_1.changeAttendantStatus);
+route.patch('/admin/attendants/status', authMiddleware_1.authMiddleware, (0, roleMiddleware_1.requireRole)('admin'), adminControllers_1.changeAttendantStatus);
 exports.default = route;

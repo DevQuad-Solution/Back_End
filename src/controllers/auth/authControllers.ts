@@ -68,9 +68,9 @@ export const signup = async (req: Request, res: Response) => {
     });
 
     // Send 6 digit code to the email
-    const emaialSent = await createAndSendOtp(email, 'signup');
+    const emaialSent = await createAndSendOtp(fullName, email, 'signup');
 
-    return resSender(res, 201, 'success', 'Account created!');
+    return resSender(res, 201, 'success', 'Email Sent, verify code next!');
   } catch (error: any) {
     return errorHandler(error, res, 'Error signing up!');
   }
@@ -363,7 +363,7 @@ export const sendCode = async (req: Request, res: Response) => {
       );
     }
 
-    const emailSent = await createAndSendOtp(existingMail.email, reason);
+    const emailSent = await createAndSendOtp(existingMail.name, existingMail.email, reason);
 
     return resSender(
       res,

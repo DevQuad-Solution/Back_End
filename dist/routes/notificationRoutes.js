@@ -9,4 +9,6 @@ const route = (0, express_1.Router)();
 route.get('/notifications', authMiddleware_1.authMiddleware, (0, roleMiddleware_1.requireRole)('admin'), notificationController_1.fetchAllNotifications);
 // User route - fetch notifications for the authenticated user
 route.get('/notifications/me', authMiddleware_1.authMiddleware, notificationController_1.fetchNotificationForUser);
+// User route - for saving user waitlists
+route.post('/notifications/waitlist', notificationController_1.saveWaitList);
 exports.default = route;

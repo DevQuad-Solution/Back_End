@@ -247,58 +247,6 @@
               },
             },
           },
-          '/api/auth/admin/signin': {
-            post: {
-              tags: ['Authentication'],
-              summary: 'Admin signin',
-              description: 'Login with email/phone and password',
-              requestBody: {
-                required: true,
-                content: {
-                  'application/json': {
-                    schema: {
-                      type: 'object',
-                      properties: {
-                        identifier: { type: 'string', description: 'Email or phone number' },
-                        password: { type: 'string', format: 'password' },
-                      },
-                      required: ['identifier', 'password'],
-                    },
-                  },
-                },
-              },
-              responses: {
-                200: { description: 'Login successful' },
-                400: { description: 'Invalid credentials' },
-              },
-            },
-          },
-          '/api/auth/attendant/signin': {
-            post: {
-              tags: ['Authentication'],
-              summary: 'User signin',
-              description: 'Login with email/phone and password',
-              requestBody: {
-                required: true,
-                content: {
-                  'application/json': {
-                    schema: {
-                      type: 'object',
-                      properties: {
-                        identifier: { type: 'string', description: 'Email or phone number' },
-                        password: { type: 'string', format: 'password' },
-                      },
-                      required: ['identifier', 'password'],
-                    },
-                  },
-                },
-              },
-              responses: {
-                200: { description: 'Login successful' },
-                400: { description: 'Invalid credentials' },
-              },
-            },
-          },
           '/api/auth/code': {
             post: {
               tags: ['Authentication'],
@@ -640,6 +588,32 @@
               responses: { 200: { description: 'Rating created' } },
             },
           },
+          '/api/auth/attendant/signin': {
+            post: {
+              tags: ['Attendant Auth'],
+              summary: 'Attendant signin',
+              description: 'Login with email/phone and password',
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        identifier: { type: 'string', description: 'Email or phone number' },
+                        password: { type: 'string', format: 'password' },
+                      },
+                      required: ['identifier', 'password'],
+                    },
+                  },
+                },
+              },
+              responses: {
+                200: { description: 'Login successful' },
+                400: { description: 'Invalid credentials' },
+              },
+            },
+          },
           '/api/attendant/dashboard': {
             get: {
               tags: ['Attendant'],
@@ -700,6 +674,32 @@
                 },
               },
               responses: { 200: { description: 'Webhook processed' } },
+            },
+          },
+          '/api/auth/admin/signin': {
+            post: {
+              tags: ['Admin - Auth'],
+              summary: 'Admin signin',
+              description: 'Login with email/phone and password',
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        identifier: { type: 'string', description: 'Email or phone number' },
+                        password: { type: 'string', format: 'password' },
+                      },
+                      required: ['identifier', 'password'],
+                    },
+                  },
+                },
+              },
+              responses: {
+                200: { description: 'Login successful' },
+                400: { description: 'Invalid credentials' },
+              },
             },
           },
           '/api/admin/users': {
@@ -795,7 +795,7 @@
               summary: 'Fetch hubs',
               security: [{ BearerAuth: [] }],
               parameters: [
-                { name: 'query', in: 'query', required: true, schema: { type: 'string' } },
+                { name: 'query', in: 'query', schema: { type: 'string' } },
                 { name: 'status', in: 'query', schema: { type: 'string' } },
                 { name: 'page', in: 'query', schema: { type: 'integer' } },
                 { name: 'limit', in: 'query', schema: { type: 'integer' } },
@@ -835,12 +835,12 @@
               responses: { 200: { description: 'Hub details' } },
             },
           },
-          '/api/admin/hubs/{id}/status': {
+          '/api/admin/hubs/status': {
             patch: {
               tags: ['Admin - Hubs'],
               summary: 'Change hub status',
               security: [{ BearerAuth: [] }],
-              parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+
               requestBody: {
                 required: true,
                 content: {
@@ -849,6 +849,7 @@
                       type: 'object',
                       properties: {
                         status: { type: 'string', enum: ['active', 'inactive', 'suspended'] },
+                        hubId: { type: 'string' },
                       },
                       required: ['status'],
                     },
@@ -858,14 +859,11 @@
               responses: { 200: { description: 'Status updated' } },
             },
           },
-          '/api/admin/hubs/{hubId}/attendant': {
+          '/api/admin/hubs/attendant': {
             post: {
               tags: ['Admin - Attendants'],
               summary: 'Assign attendant to hub',
               security: [{ BearerAuth: [] }],
-              parameters: [
-                { name: 'hubId', in: 'path', required: true, schema: { type: 'string' } },
-              ],
               requestBody: {
                 required: true,
                 content: {
@@ -873,6 +871,7 @@
                     schema: {
                       type: 'object',
                       properties: {
+                        hubId: { type: 'string' },
                         attendantId: { type: 'string' },
                       },
                     },
@@ -919,28 +918,15 @@
               summary: 'Reset attendant PIN',
               security: [{ BearerAuth: [] }],
               parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-              requestBody: {
-                required: true,
-                content: {
-                  'application/json': {
-                    schema: {
-                      type: 'object',
-                      properties: {
-                        newPin: { type: 'string' },
-                      },
-                    },
-                  },
-                },
-              },
+
               responses: { 200: { description: 'PIN reset' } },
             },
           },
-          '/api/admin/attendants/{id}/status': {
+          '/api/admin/attendants/status': {
             patch: {
               tags: ['Admin - Attendants'],
               summary: 'Change attendant status',
               security: [{ BearerAuth: [] }],
-              parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
               requestBody: {
                 required: true,
                 content: {
@@ -949,12 +935,51 @@
                       type: 'object',
                       properties: {
                         status: { type: 'string', enum: ['active', 'inactive', 'suspended'] },
+                        attendantId: { type: 'string' },
                       },
                     },
                   },
                 },
               },
               responses: { 200: { description: 'Status updated' } },
+            },
+          },
+          '/api/notifications/waitlist': {
+            post: {
+              tags: ['Waitlists'],
+              summary: 'Join Waitlist',
+              description: 'User joins the waitlist with their information',
+              parameters: [
+                {
+                  name: 'waitlist-token',
+                  in: 'header',
+                  required: false,
+                  schema: { type: 'string', example: 'TOKEN YOUR_WAITLIST_TOKEN_HERE' },
+                  description: 'Waitlist endpoint access token',
+                },
+              ],
+              // headers: { 'waitlist-token': 'TOKEN YOUR_WAITLIST_TOKEN_HERE' },
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        name: { type: 'string' },
+                        email: { type: 'string', format: 'email' },
+                        phone: { type: 'string', format: 'phone' },
+                        campus: { type: 'string' },
+                      },
+                      required: ['name', 'email', 'phone', 'campus'],
+                    },
+                  },
+                },
+              },
+              responses: {
+                200: { description: 'Login successful' },
+                400: { description: 'Invalid credentials' },
+              },
             },
           },
         },

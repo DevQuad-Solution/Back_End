@@ -39,7 +39,7 @@ route.delete('/admin/slashes/:id/dissolve', authMiddleware, requireRole('admin')
 route.get('/admin/hubs', authMiddleware, requireRole('admin'), fetchHubs);
 route.post('/admin/hubs', authMiddleware, requireRole('admin'), createHub);
 route.get('/admin/hubs/:id', authMiddleware, requireRole('admin'), fetchHubById);
-route.patch('/admin/hubs/:id/status', authMiddleware, requireRole('admin'), changeHubStatus);
+route.patch('/admin/hubs/status', authMiddleware, requireRole('admin'), changeHubStatus);
 
 // Hub Attendant Routes
 route.post(
@@ -52,10 +52,11 @@ route.post('/admin/attendants', authMiddleware, requireRole('admin'), createAtte
 route.get('/admin/attendants', authMiddleware, requireRole('admin'), fetchAttendants);
 route.patch('/admin/attendants/:id/pin', authMiddleware, requireRole('admin'), resetAttendantPin);
 route.patch(
-  '/admin/attendants/:id/status',
+  '/admin/attendants/status',
   authMiddleware,
   requireRole('admin'),
   changeAttendantStatus,
 );
 
 export default route;
+

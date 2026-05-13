@@ -345,7 +345,7 @@ export const fetchHubs = async (req: Request, res: Response) => {
     };
 
     const { error } = Joi.object({
-      query: validationSchema.strings.required(), // Make query required for search
+      query: validationSchema.text,
       status: validationSchema.strings.optional().valid('all', 'active', 'inactive', 'suspended'),
       page: validationSchema.number,
       limit: validationSchema.number,
@@ -409,9 +409,13 @@ export const changeHubStatus = async (req: Request, res: Response) => {
     // Find the hub
     const hub = await Hub.findById(hubId);
     if (!hub) return resSender(res, 404, 'fail', 'Hub not found!');
+    console.log('Hub found!')
     if (hub.status === (status as HubStatus))
       return resSender(res, 403, 'fail', `Hub status is already ${hub.status}`);
+    console.log('Not matched!');
     hub.status = status as HubStatus;
+    console.log('assigned!');
+    await hub.save();
 
     return resSender(res, 200, 'success', 'Status changed!');
   } catch (error: any) {
@@ -477,7 +481,7 @@ export const fetchHubById = async (req: Request, res: Response) => {
 
     return resSender(res, 200, 'success', 'Hub fetched!', null, {
       hub: {
-        ...hub,
+        ...(hub as any)._doc,
         averageRating,
         totalReviews: totalRatings,
         slashToday,
@@ -613,6 +617,7 @@ export const changeAttendantStatus = async (req: Request, res: Response) => {
     if (attendant.status === (status as HubStatus))
       return resSender(res, 403, 'fail', `Attendant status is already ${attendant.status}`);
     attendant.status = status as HubStatus;
+    await attendant.save();
 
     return resSender(res, 200, 'success', 'Attendant status changed!');
   } catch (error: any) {

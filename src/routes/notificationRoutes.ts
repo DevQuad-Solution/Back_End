@@ -4,6 +4,7 @@ import { requireRole } from '../middlewares/roleMiddleware';
 import {
   fetchAllNotifications,
   fetchNotificationForUser,
+  saveWaitList,
 } from '../controllers/notification/notificationController';
 
 const route = Router();
@@ -13,5 +14,8 @@ route.get('/notifications', authMiddleware, requireRole('admin'), fetchAllNotifi
 
 // User route - fetch notifications for the authenticated user
 route.get('/notifications/me', authMiddleware, fetchNotificationForUser);
+
+// User route - for saving user waitlists
+route.post('/notifications/waitlist', saveWaitList);
 
 export default route;

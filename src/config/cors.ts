@@ -9,7 +9,7 @@ const corsOptions: CorsOptions = {
   origin: (origin, callback) => {
     // Check if the origin is undefined (e.g., when testing without a browser)
     if (!origin) {
-      return callback(null, true);
+      return callback(null, true);  
     }
 
     // For '*' wildcard origin, allow all origins
