@@ -8,7 +8,7 @@ const ensend_1 = __importDefault(require("../config/ensend"));
 const sendMail = async (emailData) => {
     const senderIdentity = {
         name: process.env.ENSEND_IDEN_NAME ?? 'Slash It',
-        address: process.env.ENSEND_SENDER_IDEN ?? 'noreply@slashit.com.ng',
+        address: process.env.ENSEND_SENDER_IDEN ?? 'support@slashit.com.ng',
     };
     const recipients = emailData.recipients;
     try {

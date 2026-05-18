@@ -322,7 +322,11 @@ const sendCode = async (req, res) => {
         }).validate(req.body);
         if (error)
             return (0, responseService_1.resSender)(res, 400, 'fail', error.details[0].message);
-        const existingMail = await account_1.Account.findOne({ email: email });
+        let existingMail = await account_1.Account.findOne({
+            email: email,
+        });
+        if (!existingMail)
+            existingMail = userMap.get(email);
         if (!existingMail) {
             console.log('User Email does not exist');
             return (0, responseService_1.resSender)(res, 200, 'success', 'Verification Code will be sent to your mail, if it exists!');

@@ -352,7 +352,10 @@ export const sendCode = async (req: Request, res: Response) => {
     }).validate(req.body);
     if (error) return resSender(res, 400, 'fail', error.details[0].message);
 
-    const existingMail = await Account.findOne({ email: email });
+    let existingMail: UserMap | IAccount | undefined | null = await Account.findOne({
+      email: email,
+    });
+    if (!existingMail) existingMail = userMap.get(email);
     if (!existingMail) {
       console.log('User Email does not exist');
       return resSender(

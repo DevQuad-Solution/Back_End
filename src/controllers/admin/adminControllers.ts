@@ -9,7 +9,7 @@ import { Account, KycStatus, UserStatus } from '../../models/account';
 import { Slash, SlashStatus } from '../../models/slash';
 import { IProduct } from '../../models/product';
 import bcrypt from 'bcryptjs';
-import { Attendant, Hub, HubRating, HubStatus, IHub } from '../../models/hubAttendant';
+import { Attendant, Hub, HubRating, HubStatus, IAttendant, IHub } from '../../models/hubAttendant';
 
 export const fetchAllUsers = async (req: Request, res: Response) => {
   try {
@@ -409,7 +409,7 @@ export const changeHubStatus = async (req: Request, res: Response) => {
     // Find the hub
     const hub = await Hub.findById(hubId);
     if (!hub) return resSender(res, 404, 'fail', 'Hub not found!');
-    console.log('Hub found!')
+    console.log('Hub found!');
     if (hub.status === (status as HubStatus))
       return resSender(res, 403, 'fail', `Hub status is already ${hub.status}`);
     console.log('Not matched!');
@@ -425,20 +425,33 @@ export const changeHubStatus = async (req: Request, res: Response) => {
 
 export const createHub = async (req: Request, res: Response) => {
   try {
-    const { name, city, state, address } = req.body;
+    const { name, city, state, address, transportCost, attendantId, active } = req.body;
     const { error } = Joi.object({
       name: validationSchema.strings,
       city: validationSchema.strings,
       state: validationSchema.strings,
       address: validationSchema.strings,
+      transportCost: validationSchema.number,
+      attendantId: validationSchema.objectId.optional(),
+      active: validationSchema.boolean,
     }).validate(req.body);
     if (error) return resSender(res, 400, 'fail', error.details[0].message);
+
+    let att: IAttendant | null = null;
+    // Validate attendantId
+    if (attendantId) {
+      att = await Attendant.findById(attendantId);
+      if (!att) return resSender(res, 404, 'fail', 'Invalid attendant Id');
+    }
 
     const newHub = new Hub({
       name,
       city,
       state,
       address,
+      transportCost,
+      attendant: att?._id ?? undefined,
+      status: active ? HubStatus.ACTIVE : HubStatus.INACTIVE,
     });
     await newHub.save();
 
@@ -528,9 +541,10 @@ export const asignAttendantToHub = async (req: Request, res: Response) => {
 
 export const createAttendant = async (req: Request, res: Response) => {
   try {
-    const { name, phone, email } = req.body;
+    const { name, phone, email, hubId, active } = req.body;
     const { error } = Joi.object({
-      // hubId: validationSchema.objectId,
+      hubId: validationSchema.objectId.optional(),
+      active: validationSchema.boolean,
       name: validationSchema.strings,
       phone: validationSchema.phoneNumber,
       email: validationSchema.email,
@@ -539,13 +553,13 @@ export const createAttendant = async (req: Request, res: Response) => {
     console.log('Validation DOne');
 
     const { hashedPin, pin } = generatePin();
-    // let hub: IHub | null = null;
+    let hub: IHub | null = null;
 
-    // Find hub
-    // if (hubId) {
-    //   hub = await Hub.findById(hubId);
-    //   if (!hub) console.log('Hub does not exist'); // return resSender(res, 404, 'fail', 'Hub not found!');
-    // }
+    // Find/validate hub
+    if (hubId) {
+      hub = await Hub.findById(hubId);
+      if (!hub) return resSender(res, 404, 'fail', 'Hub not found!');
+    }
 
     console.log('Got here!');
 
@@ -555,14 +569,15 @@ export const createAttendant = async (req: Request, res: Response) => {
       email,
       emailVerified: true,
       password: hashedPin,
-      // hub: hub?._id ?? undefined,
+      hub: hub?._id ?? undefined,
       joinedAt: new Date(),
+      status: active ? HubStatus.ACTIVE : HubStatus.INACTIVE,
     });
     await newAttendant.save();
 
     // hub?.attendant = newAttendant._id;
     // await hub.save();
-    console.log('Saved')
+    console.log('Saved');
 
     return resSender(res, 201, 'success', 'Attendant created!', null, {
       attendant: modifyUserResponse(newAttendant),

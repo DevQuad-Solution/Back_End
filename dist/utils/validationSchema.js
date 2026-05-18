@@ -141,6 +141,7 @@ class ValidationService {
         });
         // Phrase key activation validation
         this.phraseKeyActivation = joi_1.default.boolean().optional();
+        this.boolean = joi_1.default.boolean();
         this.identifier = joi_1.default.string().required().messages({
             'string.base': `"identifier" should be a type of 'text'`,
             'string.empty': `"identifier" cannot be an empty field`,

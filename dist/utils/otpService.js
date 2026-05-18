@@ -6,10 +6,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.verifyOtp = exports.createAndSendOtp = void 0;
 const otp_1 = __importDefault(require("../models/otp"));
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
-const otpMail_1 = require("../mails/otpMail");
 const tokenService_1 = require("./tokenService");
 const adminControllers_1 = require("../controllers/admin/adminControllers");
 const emailService_1 = require("./emailService");
+const mailDataFormat_1 = require("./mailDataFormat");
 const jwtAccess = process.env.ACCESS_SECRET;
 /**
  *
@@ -38,33 +38,7 @@ const createAndSendOtp = async (name, email, reason = 'signup') => {
         }
         await otpRecord.save();
         console.log('Code: ', verificationCode);
-        // Select email template and subject based on reason
-        let emailSubject = '';
-        let emailContent;
-        // Filter email template based on reason
-        switch (reason) {
-            case 'forgotPassword':
-                emailSubject = 'Password Reset Request';
-                emailContent = (0, otpMail_1.forgetPassword)({
-                    firstName: email,
-                    otp: verificationCode,
-                });
-                break;
-            case 'verifyEmail':
-                emailSubject = 'Email Verification';
-                emailContent = (0, otpMail_1.signupMail)({ firstName: email, otp: verificationCode });
-                break;
-            case 'signup':
-                emailSubject = 'Free Trial Verification';
-                emailContent = (0, otpMail_1.signupMail)({ firstName: email, otp: verificationCode }); // Using forgetPassword as fallback
-                break;
-            default:
-                emailSubject = 'Verification Code';
-                emailContent = (0, otpMail_1.forgetPassword)({
-                    firstName: email,
-                    otp: verificationCode,
-                }); // Default to forgetPassword
-        }
+        const { emailContent, emailSubject } = (0, mailDataFormat_1.prepareMail)({ email, code: verificationCode }, reason);
         let sent = false;
         const emailData = {
             subject: emailSubject,

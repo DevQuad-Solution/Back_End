@@ -9,7 +9,7 @@ import { Product } from '../../models/product';
 
 export const fetchProducts = async (req: Request, res: Response) => {
   try {
-    const allProducts = Product.find();
+    const allProducts = await Product.find();
     return resSender(res, 200, 'success', 'Fetched!', null, allProducts);
   } catch (error: any) {
     return errorHandler(error, res, 'Error fetching products!');

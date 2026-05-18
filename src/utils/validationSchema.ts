@@ -158,6 +158,7 @@ class ValidationService {
 
   // Phrase key activation validation
   phraseKeyActivation = Joi.boolean().optional();
+  boolean = Joi.boolean();
 
   identifier = Joi.string().required().messages({
     'string.base': `"identifier" should be a type of 'text'`,

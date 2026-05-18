@@ -10,6 +10,7 @@ export interface IHub extends Document {
   city: string;
   state: string;
   address: string;
+  transportCost: number;
   status: HubStatus;
   attendant?: Types.ObjectId;
   revenue: number;
@@ -57,6 +58,7 @@ const hubSchema = new Schema(
       enum: Object.values(HubStatus),
       default: HubStatus.INACTIVE,
     },
+    transportCost: { type: Number, required: true },
     attendant: { type: Types.ObjectId, ref: 'Attendant' },
     revenue: { type: Number, default: 0 },
   },

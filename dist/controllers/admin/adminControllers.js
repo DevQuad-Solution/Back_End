@@ -367,20 +367,33 @@ const changeHubStatus = async (req, res) => {
 exports.changeHubStatus = changeHubStatus;
 const createHub = async (req, res) => {
     try {
-        const { name, city, state, address } = req.body;
+        const { name, city, state, address, transportCost, attendantId, active } = req.body;
         const { error } = joi_1.default.object({
             name: validationSchema_1.default.strings,
             city: validationSchema_1.default.strings,
             state: validationSchema_1.default.strings,
             address: validationSchema_1.default.strings,
+            transportCost: validationSchema_1.default.number,
+            attendantId: validationSchema_1.default.objectId.optional(),
+            active: validationSchema_1.default.boolean,
         }).validate(req.body);
         if (error)
             return (0, responseService_1.resSender)(res, 400, 'fail', error.details[0].message);
+        let att = null;
+        // Validate attendantId
+        if (attendantId) {
+            att = await hubAttendant_1.Attendant.findById(attendantId);
+            if (!att)
+                return (0, responseService_1.resSender)(res, 404, 'fail', 'Invalid attendant Id');
+        }
         const newHub = new hubAttendant_1.Hub({
             name,
             city,
             state,
             address,
+            transportCost,
+            attendant: att?._id ?? undefined,
+            status: active ? hubAttendant_1.HubStatus.ACTIVE : hubAttendant_1.HubStatus.INACTIVE,
         });
         await newHub.save();
         return (0, responseService_1.resSender)(res, 201, 'success', 'Hub created!', null, newHub);
@@ -465,9 +478,10 @@ const asignAttendantToHub = async (req, res) => {
 exports.asignAttendantToHub = asignAttendantToHub;
 const createAttendant = async (req, res) => {
     try {
-        const { name, phone, email } = req.body;
+        const { name, phone, email, hubId, active } = req.body;
         const { error } = joi_1.default.object({
-            // hubId: validationSchema.objectId,
+            hubId: validationSchema_1.default.objectId.optional(),
+            active: validationSchema_1.default.boolean,
             name: validationSchema_1.default.strings,
             phone: validationSchema_1.default.phoneNumber,
             email: validationSchema_1.default.email,
@@ -476,12 +490,13 @@ const createAttendant = async (req, res) => {
             return (0, responseService_1.resSender)(res, 400, 'fail', error.details[0].message);
         console.log('Validation DOne');
         const { hashedPin, pin } = (0, exports.generatePin)();
-        // let hub: IHub | null = null;
-        // Find hub
-        // if (hubId) {
-        //   hub = await Hub.findById(hubId);
-        //   if (!hub) console.log('Hub does not exist'); // return resSender(res, 404, 'fail', 'Hub not found!');
-        // }
+        let hub = null;
+        // Find/validate hub
+        if (hubId) {
+            hub = await hubAttendant_1.Hub.findById(hubId);
+            if (!hub)
+                return (0, responseService_1.resSender)(res, 404, 'fail', 'Hub not found!');
+        }
         console.log('Got here!');
         const newAttendant = new hubAttendant_1.Attendant({
             name,
@@ -489,8 +504,9 @@ const createAttendant = async (req, res) => {
             email,
             emailVerified: true,
             password: hashedPin,
-            // hub: hub?._id ?? undefined,
+            hub: hub?._id ?? undefined,
             joinedAt: new Date(),
+            status: active ? hubAttendant_1.HubStatus.ACTIVE : hubAttendant_1.HubStatus.INACTIVE,
         });
         await newAttendant.save();
         // hub?.attendant = newAttendant._id;

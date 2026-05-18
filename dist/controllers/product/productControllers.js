@@ -10,7 +10,7 @@ const validationSchema_1 = __importDefault(require("../../utils/validationSchema
 const product_1 = require("../../models/product");
 const fetchProducts = async (req, res) => {
     try {
-        const allProducts = product_1.Product.find();
+        const allProducts = await product_1.Product.find();
         return (0, responseService_1.resSender)(res, 200, 'success', 'Fetched!', null, allProducts);
     }
     catch (error) {

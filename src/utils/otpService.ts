@@ -3,7 +3,8 @@ import bcrypt from 'bcryptjs';
 import { forgetPassword, signupMail } from '../mails/otpMail';
 import { generateToken } from './tokenService';
 import { generatePin } from '../controllers/admin/adminControllers';
-import { EmailData, sendMail } from "./emailService";
+import { EmailData, sendMail } from './emailService';
+import { prepareMail } from './mailDataFormat';
 
 const jwtAccess = process.env.ACCESS_SECRET as string;
 
@@ -36,34 +37,7 @@ export const createAndSendOtp = async (name: string, email: string, reason: stri
     await otpRecord.save();
     console.log('Code: ', verificationCode);
 
-    // Select email template and subject based on reason
-    let emailSubject = '';
-    let emailContent;
-
-    // Filter email template based on reason
-    switch (reason) {
-      case 'forgotPassword':
-        emailSubject = 'Password Reset Request';
-        emailContent = forgetPassword({
-          firstName: email,
-          otp: verificationCode,
-        });
-        break;
-      case 'verifyEmail':
-        emailSubject = 'Email Verification';
-        emailContent = signupMail({ firstName: email, otp: verificationCode });
-        break;
-      case 'signup':
-        emailSubject = 'Free Trial Verification';
-        emailContent = signupMail({ firstName: email, otp: verificationCode }); // Using forgetPassword as fallback
-        break;
-      default:
-        emailSubject = 'Verification Code';
-        emailContent = forgetPassword({
-          firstName: email,
-          otp: verificationCode,
-        }); // Default to forgetPassword
-    }
+    const { emailContent, emailSubject } = prepareMail({ email, code: verificationCode }, reason);
 
     let sent: boolean = false;
     const emailData: EmailData = {
