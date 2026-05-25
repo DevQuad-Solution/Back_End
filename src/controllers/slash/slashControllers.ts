@@ -5,7 +5,7 @@ import { modifyUserResponse } from '../../utils/modifyResponse';
 import Joi from 'joi';
 import validationSchema from '../../utils/validationSchema';
 import { Schema } from 'mongoose';
-import { Account, AppRole, IAccount } from '../../models/account';
+import { Account, AppRole, IAccount, KycStatus } from '../../models/account';
 import { Slash, SlashStatus } from '../../models/slash';
 import { IProduct, Product } from '../../models/product';
 import qrService from '../../utils/qrService';
@@ -36,8 +36,13 @@ export const createSlash = async (req: Request, res: Response) => {
     }).validate(req.body);
     if (error) return resSender(res, 400, 'fail', error.details[0].message);
 
-    if (!req.user?.emailVerified)
-      return resSender(res, 400, 'fail', 'Please verify your account to proceed!');
+    if (
+      !req.user ||
+      req.user.role !== AppRole.USER ||
+      req.user.kyc?.status !== KycStatus.VERIFIED
+    ) {
+      return resSender(res, 400, 'fail', 'Only verified user accounts can create a slash!');
+    }
 
     // Calculate & deduct price of one slot for the slash
     const product = await Product.findById(productId);
