@@ -11,6 +11,9 @@ import { IProduct, Product } from '../../models/product';
 import qrService from '../../utils/qrService';
 import { toBase64, base64ToString } from '../../utils/encryption';
 import { addNotification } from '../../utils/notificationService';
+import { AIService } from '../../utils/aiService';
+
+const aiService = new AIService();
 
 const generateClaimCode = (slashId: string, userId: string) => {
   const slashPart = slashId.toString().slice(-4).toUpperCase();
@@ -96,13 +99,30 @@ export const createSlash = async (req: Request, res: Response) => {
       { path: 'hub', select: 'name city state address' },
     ]);
 
+    const aiLaunchMessage = await aiService.generateSlashLaunchMessage({
+      productName: (updatedSlash?.product as any).name,
+      category: (updatedSlash?.product as any).category,
+      pricePerSlot: (updatedSlash?.product as any).pricePerSlot,
+      totalValue: (updatedSlash?.product as any).totalValue,
+      noOfSlots: (updatedSlash?.product as any).noOfSlots,
+      quantity: (updatedSlash?.product as any).quantity,
+      emoji: (updatedSlash?.product as any).emoji ?? '',
+      timeLimit,
+      hubName: (updatedSlash?.hub as any).name,
+      hubCity: (updatedSlash?.hub as any).city,
+      hubState: (updatedSlash?.hub as any).state,
+    });
+
     await addNotification(
       'Joined Slash',
       `Joined Slash ${updatedSlash?._id.toString().substring(20)} - ${(updatedSlash?.product as any).name}`,
       [userId],
     );
 
-    return resSender(res, 200, 'success', 'Slash created successfully!', null, updatedSlash);
+    return resSender(res, 200, 'success', 'Slash created successfully!', null, {
+      slash: updatedSlash,
+      aiLaunchMessage,
+    });
   } catch (error: any) {
     return errorHandler(error, res, 'Error creating slash!');
   }
@@ -443,11 +463,11 @@ export const deleteSlash = async (req: Request, res: Response) => {
 export const getQrForSlash = async (req: Request, res: Response) => {
   try {
     const userId = req.user?._id!;
-    const { id } = req.params;
+    const { id } = req.query;
 
     const { error } = Joi.object({
       id: validationSchema.objectId,
-    }).validate(req.params);
+    }).validate(req.query);
     if (error) return resSender(res, 400, 'fail', error.details[0].message);
 
     // Find the slash and get the QR code for the user

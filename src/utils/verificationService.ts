@@ -1,6 +1,9 @@
 import axios from 'axios';
-import { Account } from '../models/account';
+import { Account, KycStatus } from '../models/account';
 import { Schema, Types } from 'mongoose';
+import { PlatformSettings } from '../models/platformSettings';
+import { encrypt } from './encryption';
+import { doNamesMatch } from './nameMatch';
 
 const NIN_API_BASE_URL = process.env.NIN_API_BASE_URL || 'https://checkmyninbvn.com.ng/api';
 const NIN_API_KEY = process.env.NIN_VER_API_KEY;
@@ -18,8 +21,11 @@ const ninClient = axios.create({
   },
 });
 
-const normalizeBase64Image = (input: string | undefined): string => {
+const normalizeBase64Image = (input: string | Buffer | undefined): string => {
   if (!input) return '';
+  if (Buffer.isBuffer(input)) {
+    return input.toString('base64');
+  }
   return input
     .replace(/^data:image\/[a-zA-Z]+;base64,/, '')
     .replace(/\s+/g, '')
@@ -91,14 +97,45 @@ export const verifyNIN = async (
   return response.data;
 };
 
+export interface KYCVerificationResult {
+  verified: boolean;
+  chargedAmount: number;
+  walletBalance: number;
+  apiResponse: NINVerificationResponse;
+  matches: {
+    name: boolean;
+    phone: boolean;
+    photo: boolean;
+  };
+  normalized: {
+    givenName: string;
+    apiName: string;
+    givenPhone: string;
+    apiPhone: string;
+  };
+}
+
 export const verifyNINForUser = async (
   userId: Types.ObjectId,
   nin: string,
   name: string,
   phone: string,
-  capturedImageBase64: string,
+  capturedImageBase64: Buffer | string,
   consent = true,
-) => {
+): Promise<KYCVerificationResult> => {
+  // Check if NIN verification is enabled
+  const settings = await PlatformSettings.findOne();
+  if (settings?.ninVerification === 'Disabled') {
+    throw new Error('NIN verification is currently disabled by admin');
+  }
+
+  // Check if user is already verified
+  const existingUser = await Account.findById(userId);
+  if (existingUser?.kyc?.status === KycStatus.VERIFIED) {
+    throw new Error('User is already KYC verified');
+  }
+
+  // Deduct verification cost
   const user = await Account.findOneAndUpdate(
     { _id: userId, walletBalance: { $gte: NIN_VERIFICATION_COST } },
     { $inc: { walletBalance: -NIN_VERIFICATION_COST } },
@@ -109,33 +146,80 @@ export const verifyNINForUser = async (
     throw new Error('Insufficient wallet balance for NIN verification');
   }
 
-  const verificationResponse = await verifyNIN({ nin, consent });
+  // Call NIN verification API
+  let verificationResponse: NINVerificationResponse;
+  try {
+    verificationResponse = await verifyNIN({ nin, consent });
+  } catch (error: any) {
+    // Refund the user if API fails
+    await Account.findByIdAndUpdate(userId, {
+      $inc: { walletBalance: NIN_VERIFICATION_COST },
+    });
+    throw new Error(error.response?.data?.message || 'NIN verification service unavailable');
+  }
+
   if (verificationResponse.status !== 'success') {
+    // Refund the user if verification fails
+    await Account.findByIdAndUpdate(userId, {
+      $inc: { walletBalance: NIN_VERIFICATION_COST },
+    });
     throw new Error(verificationResponse.message || 'NIN verification failed');
   }
 
   const apiData = verificationResponse.data;
+
+  // Normalize names
   const normalizedGivenName = normalizeName(name);
   const normalizedApiName = normalizeName(
     [apiData.firstname, apiData.middlename, apiData.surname].filter(Boolean).join(' '),
   );
+
+  // Use flexible name matching instead of exact match
+  const nameMatch = doNamesMatch(normalizedGivenName, normalizedApiName, 0.6);
+
+  // For phone, still use exact match (or can also make flexible)
   const normalizedGivenPhone = normalizePhoneNumber(phone);
   const normalizedApiPhone = normalizePhoneNumber(apiData.telephoneno);
+  const phoneMatch = normalizedGivenPhone === normalizedApiPhone;
+
+  // For photo (if applicable)
   const normalizedGivenImage = normalizeBase64Image(capturedImageBase64);
   const normalizedApiImage = normalizeBase64Image(apiData.photo);
+  const photoMatch =
+    normalizedGivenImage !== '' &&
+    normalizedApiImage !== '' &&
+    normalizedGivenImage === normalizedApiImage;
+
+  // Determine verification success
+  // Name match is primary, phone is secondary
+  const isVerified = nameMatch; // Or you can require both: nameMatch && phoneMatch
+
+  // Update user KYC status
+  if (isVerified) {
+    await Account.findByIdAndUpdate(userId, {
+      $set: {
+        'kyc.nin': encrypt(nin),
+        'kyc.status': KycStatus.VERIFIED,
+      },
+    });
+  } else {
+    await Account.findByIdAndUpdate(userId, {
+      $set: {
+        'kyc.nin': encrypt(nin),
+        'kyc.status': KycStatus.REJECTED,
+      },
+    });
+  }
 
   return {
-    verified: true,
+    verified: isVerified,
     chargedAmount: NIN_VERIFICATION_COST,
     walletBalance: user.walletBalance,
     apiResponse: verificationResponse,
     matches: {
-      name: normalizedGivenName === normalizedApiName,
-      phone: normalizedGivenPhone === normalizedApiPhone,
-      photo:
-        normalizedGivenImage !== '' &&
-        normalizedApiImage !== '' &&
-        normalizedGivenImage === normalizedApiImage,
+      name: nameMatch,
+      phone: phoneMatch,
+      photo: photoMatch,
     },
     normalized: {
       givenName: normalizedGivenName,

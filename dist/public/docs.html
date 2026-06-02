@@ -161,6 +161,91 @@
                 createdAt: { type: 'string', format: 'date-time' },
               },
             },
+            FraudAssessment: {
+              type: 'object',
+              properties: {
+                _id: { type: 'string' },
+                userId: { type: 'string' },
+                riskScore: { type: 'number', minimum: 0, maximum: 100 },
+                riskLevel: { type: 'string', enum: ['low', 'medium', 'high', 'critical'] },
+                flags: { type: 'array', items: { type: 'string' } },
+                recommendation: { type: 'string', enum: ['allow', 'monitor', 'hold', 'block'] },
+                reasoning: { type: 'string' },
+                trigger: {
+                  type: 'string',
+                  enum: ['wallet_topup', 'slash_join', 'kyc_submit', 'manual'],
+                },
+                layer: { type: 'integer', enum: [1, 2] },
+                adminAction: { type: 'string', enum: ['cleared', 'watching', 'blocked'] },
+                createdAt: { type: 'string', format: 'date-time' },
+              },
+            },
+            AISettings: {
+              type: 'object',
+              properties: {
+                radarEnabled: { type: 'boolean' },
+                fraudEnabled: { type: 'boolean' },
+                retentionEnabled: { type: 'boolean' },
+                dailyBudgetUsd: { type: 'number' },
+                pausedForBudget: { type: 'boolean' },
+                minRadarScore: { type: 'number' },
+              },
+            },
+            RadarDeal: {
+              type: 'object',
+              properties: {
+                _id: { type: 'string' },
+                productName: { type: 'string' },
+                pricePerSlot: { type: 'number' },
+                slotsLeft: { type: 'integer' },
+                radarScore: { type: 'number' },
+                expiresAt: { type: 'string' },
+                radarHeadline: { type: 'string' },
+              },
+            },
+            PlatformConfig: {
+              type: 'object',
+              properties: {
+                processingFeePerSlot: { type: 'number' },
+                insuranceRatePct: { type: 'number' },
+                defaultTransportFee: { type: 'number' },
+                maxSlashDurationHours: { type: 'number' },
+                cancellationPenaltyPct: { type: 'number' },
+                minSlotsPerSlash: { type: 'number' },
+                minTopupAmount: { type: 'number' },
+              },
+            },
+            PaymentSettings: {
+              type: 'object',
+              properties: {
+                paymentProvider: { type: 'string' },
+                payoutProvider: { type: 'string' },
+                escrowReleaseTrigger: {
+                  type: 'string',
+                  enum: ['Attendant Verification', 'Auto'],
+                },
+              },
+            },
+            KycSettings: {
+              type: 'object',
+              properties: {
+                kycRequiredToJoin: { type: 'boolean' },
+                kycProvider: { type: 'string' },
+                ninVerification: { type: 'string', enum: ['Enabled', 'Disabled'] },
+              },
+            },
+            FeatureFlags: {
+              type: 'object',
+              properties: {
+                hosteLeaderboard: { type: 'boolean' },
+                banterBoard: { type: 'boolean' },
+                referralProgram: { type: 'boolean' },
+                paidPlanPackages: { type: 'boolean' },
+                foodPackages: { type: 'boolean' },
+                walletFunding: { type: 'boolean' },
+                transportation: { type: 'boolean' },
+              },
+            },
             ErrorResponse: {
               type: 'object',
               properties: {
@@ -172,6 +257,7 @@
           },
         },
         paths: {
+          // ==================== HEALTH ROUTES ====================
           '/': {
             get: {
               tags: ['Health Check'],
@@ -193,6 +279,8 @@
               responses: { 200: { description: 'API is working' } },
             },
           },
+
+          // ==================== AUTHENTICATION ROUTES ====================
           '/api/auth/': {
             post: {
               tags: ['Authentication'],
@@ -352,6 +440,987 @@
               },
             },
           },
+          '/api/auth/kyc': {
+            post: {
+              tags: ['Authentication'],
+              summary: 'Verify KYC',
+              description: 'Submit NIN and photo for KYC verification',
+              security: [{ BearerAuth: [] }],
+              requestBody: {
+                required: true,
+                content: {
+                  'multipart/form-data': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        nin: {
+                          type: 'string',
+                          minLength: 11,
+                          maxLength: 11,
+                          description: '11-digit NIN number',
+                        },
+                        image: {
+                          type: 'array',
+                          items: {
+                            type: 'string',
+                            format: 'binary',
+                            description: 'User photo for verification',
+                          },
+                        },
+                        consent: { type: 'boolean', description: 'Consent for NIN verification' },
+                      },
+                      required: ['nin', 'image'],
+                    },
+                  },
+                },
+              },
+              responses: {
+                200: { description: 'KYC verification successful' },
+                400: { description: 'Verification failed or insufficient balance' },
+                401: { description: 'Unauthorized' },
+              },
+            },
+          },
+          '/api/auth/admin/signin': {
+            post: {
+              tags: ['Admin - Auth'],
+              summary: 'Admin signin',
+              description: 'Login with email/phone and password',
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        identifier: { type: 'string', description: 'Email or phone number' },
+                        password: { type: 'string', format: 'password' },
+                      },
+                      required: ['identifier', 'password'],
+                    },
+                  },
+                },
+              },
+              responses: {
+                200: { description: 'Login successful' },
+                400: { description: 'Invalid credentials' },
+              },
+            },
+          },
+          '/api/auth/attendant/signin': {
+            post: {
+              tags: ['Attendant Auth'],
+              summary: 'Attendant signin',
+              description: 'Login with email/phone and password',
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        identifier: { type: 'string', description: 'Email or phone number' },
+                        password: { type: 'string', format: 'password' },
+                      },
+                      required: ['identifier', 'password'],
+                    },
+                  },
+                },
+              },
+              responses: {
+                200: { description: 'Login successful' },
+                400: { description: 'Invalid credentials' },
+              },
+            },
+          },
+
+          // ==================== AI RADAR ROUTES ====================
+          '/api/ai/radar': {
+            get: {
+              tags: ['AI - Food Radar'],
+              summary: 'Get radar deals',
+              description: 'Returns top 5 radar-scored active slashes for a hub',
+              parameters: [
+                {
+                  name: 'hubId',
+                  in: 'query',
+                  required: true,
+                  schema: { type: 'string' },
+                  description: 'Hub ID',
+                },
+              ],
+              responses: {
+                200: {
+                  description: 'Radar deals retrieved',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          status: { type: 'string' },
+                          data: {
+                            type: 'object',
+                            properties: {
+                              hubId: { type: 'string' },
+                              deals: {
+                                type: 'array',
+                                items: { $ref: '#/components/schemas/RadarDeal' },
+                              },
+                              cachedAt: { type: 'string', format: 'date-time' },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+
+          // ==================== AI FRAUD DETECTION ROUTES ====================
+          '/api/admin/ai/fraud-queue': {
+            get: {
+              tags: ['AI - Fraud Detection'],
+              summary: 'Get fraud queue',
+              description: 'Returns all fraud assessments with high or critical risk level',
+              security: [{ BearerAuth: [] }],
+              responses: {
+                200: {
+                  description: 'Fraud queue retrieved',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          status: { type: 'string' },
+                          data: {
+                            type: 'object',
+                            properties: {
+                              total: { type: 'integer' },
+                              assessments: {
+                                type: 'array',
+                                items: { $ref: '#/components/schemas/FraudAssessment' },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          '/api/admin/ai/fraud-queue/{assessmentId}': {
+            patch: {
+              tags: ['AI - Fraud Detection'],
+              summary: 'Resolve fraud assessment',
+              description: 'Admin resolves a fraud flag',
+              security: [{ BearerAuth: [] }],
+              parameters: [
+                { name: 'assessmentId', in: 'path', required: true, schema: { type: 'string' } },
+              ],
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        action: { type: 'string', enum: ['cleared', 'watching', 'blocked'] },
+                      },
+                      required: ['action'],
+                    },
+                  },
+                },
+              },
+              responses: {
+                200: { description: 'Assessment resolved' },
+                404: { description: 'Assessment not found' },
+              },
+            },
+          },
+          '/api/admin/ai/fraud-stats': {
+            get: {
+              tags: ['AI - Fraud Detection'],
+              summary: 'Get fraud stats',
+              description: 'Returns summary counts for fraud dashboard',
+              security: [{ BearerAuth: [] }],
+              responses: {
+                200: {
+                  description: 'Statistics retrieved',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          status: { type: 'string' },
+                          data: {
+                            type: 'object',
+                            properties: {
+                              total: { type: 'integer' },
+                              critical: { type: 'integer' },
+                              high: { type: 'integer' },
+                              pending: { type: 'integer' },
+                              resolvedToday: { type: 'integer' },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          '/api/admin/ai/fraud-queue/trigger': {
+            post: {
+              tags: ['AI - Fraud Detection'],
+              summary: 'Trigger manual fraud check',
+              description: 'Manually run fraud check on a user',
+              security: [{ BearerAuth: [] }],
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        userId: { type: 'string' },
+                        trigger: {
+                          type: 'string',
+                          enum: ['manual', 'wallet_topup', 'slash_join', 'kyc_submit'],
+                        },
+                      },
+                      required: ['userId'],
+                    },
+                  },
+                },
+              },
+              responses: {
+                200: { description: 'Fraud analysis queued' },
+              },
+            },
+          },
+
+          // ==================== AI RADAR ADMIN ROUTES ====================
+          '/api/admin/ai/radar/trigger': {
+            post: {
+              tags: ['AI - Food Radar'],
+              summary: 'Trigger radar run',
+              description: 'Immediately runs the Food Radar for a specific hub',
+              security: [{ BearerAuth: [] }],
+              requestBody: {
+                required: false,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        hubId: {
+                          type: 'string',
+                          description: 'Optional: Run for specific hub only',
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+              responses: {
+                200: {
+                  description: 'Radar run started',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          status: { type: 'string' },
+                          message: { type: 'string' },
+                          data: {
+                            type: 'object',
+                            properties: {
+                              slashesScored: { type: 'integer' },
+                              notificationsSent: { type: 'integer' },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          '/api/admin/ai/radar/logs': {
+            get: {
+              tags: ['AI - Food Radar'],
+              summary: 'Get radar run logs',
+              description: 'Returns last 20 radar run summaries',
+              security: [{ BearerAuth: [] }],
+              responses: {
+                200: {
+                  description: 'Logs retrieved',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          status: { type: 'string' },
+                          data: {
+                            type: 'object',
+                            properties: {
+                              logs: {
+                                type: 'array',
+                                items: {
+                                  type: 'object',
+                                  properties: {
+                                    runAt: { type: 'string', format: 'date-time' },
+                                    tokensUsed: { type: 'integer' },
+                                    estimatedCostUsd: { type: 'number' },
+                                  },
+                                },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+
+          // ==================== AI SETTINGS ROUTES ====================
+          '/api/admin/ai/settings': {
+            get: {
+              tags: ['AI - Settings'],
+              summary: 'Get AI settings',
+              description: 'Returns current AI feature toggle states and budget configuration',
+              security: [{ BearerAuth: [] }],
+              responses: {
+                200: {
+                  description: 'Settings retrieved',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          status: { type: 'string' },
+                          data: { $ref: '#/components/schemas/AISettings' },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            patch: {
+              tags: ['AI - Settings'],
+              summary: 'Update AI settings',
+              description: 'Update AI feature toggles and budget',
+              security: [{ BearerAuth: [] }],
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        radarEnabled: { type: 'boolean' },
+                        fraudEnabled: { type: 'boolean' },
+                        retentionEnabled: { type: 'boolean' },
+                        dailyBudgetUsd: { type: 'number' },
+                        minRadarScore: { type: 'number', minimum: 0, maximum: 100 },
+                      },
+                    },
+                  },
+                },
+              },
+              responses: {
+                200: { description: 'Settings updated' },
+              },
+            },
+          },
+          '/api/admin/ai/costs': {
+            get: {
+              tags: ['AI - Settings'],
+              summary: 'Get AI cost report',
+              description: 'Returns spending breakdown from AILog collection',
+              security: [{ BearerAuth: [] }],
+              parameters: [
+                {
+                  name: 'from',
+                  in: 'query',
+                  schema: { type: 'string', format: 'date' },
+                  description: 'Start date (YYYY-MM-DD)',
+                },
+                {
+                  name: 'to',
+                  in: 'query',
+                  schema: { type: 'string', format: 'date' },
+                  description: 'End date (YYYY-MM-DD)',
+                },
+              ],
+              responses: {
+                200: {
+                  description: 'Cost report retrieved',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          status: { type: 'string' },
+                          data: {
+                            type: 'object',
+                            properties: {
+                              totalUsd: { type: 'number' },
+                              totalTokens: { type: 'integer' },
+                              byFeature: { type: 'object' },
+                              byModel: { type: 'object' },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          '/api/admin/ai/insights': {
+            post: {
+              tags: ['AI - Settings'],
+              summary: 'Get AI insights',
+              description: 'Admin asks a plain English question, gets AI-generated answer',
+              security: [{ BearerAuth: [] }],
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        question: {
+                          type: 'string',
+                          description: 'Natural language question about platform data',
+                        },
+                      },
+                      required: ['question'],
+                    },
+                  },
+                },
+              },
+              responses: {
+                200: {
+                  description: 'Insights generated',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          status: { type: 'string' },
+                          data: {
+                            type: 'object',
+                            properties: {
+                              question: { type: 'string' },
+                              answer: { type: 'string' },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+
+          // ==================== PLATFORM SETTINGS ROUTES ====================
+          '/api/admin/settings/flags': {
+            get: {
+              tags: ['Admin - Settings'],
+              summary: 'Get feature flags',
+              description: 'List all feature flags and their current state',
+              security: [{ BearerAuth: [] }],
+              responses: {
+                200: {
+                  description: 'Feature flags retrieved',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          status: { type: 'string' },
+                          data: { $ref: '#/components/schemas/FeatureFlags' },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          '/api/admin/settings/flags/{flag_key}': {
+            patch: {
+              tags: ['Admin - Settings'],
+              summary: 'Toggle feature flag',
+              description: 'Toggle a specific feature flag on or off',
+              security: [{ BearerAuth: [] }],
+              parameters: [
+                {
+                  name: 'flag_key',
+                  in: 'path',
+                  required: true,
+                  schema: {
+                    type: 'string',
+                    enum: [
+                      'hosteLeaderboard',
+                      'banterBoard',
+                      'referralProgram',
+                      'paidPlanPackages',
+                      'foodPackages',
+                      'walletFunding',
+                      'transportation',
+                    ],
+                  },
+                  description: 'Feature flag key',
+                },
+              ],
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        enabled: { type: 'boolean' },
+                      },
+                      required: ['enabled'],
+                    },
+                  },
+                },
+              },
+              responses: {
+                200: {
+                  description: 'Feature flag updated',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          status: { type: 'string' },
+                          data: {
+                            type: 'object',
+                            properties: {
+                              flag_key: { type: 'string' },
+                              enabled: { type: 'boolean' },
+                              updated_at: { type: 'string', format: 'date-time' },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          '/api/admin/settings/config': {
+            get: {
+              tags: ['Admin - Settings'],
+              summary: 'Get platform config',
+              description: 'Get all current platform configuration values',
+              security: [{ BearerAuth: [] }],
+              responses: {
+                200: {
+                  description: 'Platform config retrieved',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          status: { type: 'string' },
+                          data: { $ref: '#/components/schemas/PlatformConfig' },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            patch: {
+              tags: ['Admin - Settings'],
+              summary: 'Update platform config',
+              description: 'Update one or more config values',
+              security: [{ BearerAuth: [] }],
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        processingFeePerSlot: { type: 'number', minimum: 0 },
+                        insuranceRatePct: { type: 'number', minimum: 0, maximum: 100 },
+                        defaultTransportFee: { type: 'number', minimum: 0 },
+                        maxSlashDurationHours: { type: 'number', minimum: 1, maximum: 168 },
+                        cancellationPenaltyPct: { type: 'number', minimum: 0, maximum: 100 },
+                        minSlotsPerSlash: { type: 'number', minimum: 1 },
+                        minTopupAmount: { type: 'number', minimum: 0 },
+                      },
+                    },
+                  },
+                },
+              },
+              responses: {
+                200: { description: 'Platform config updated' },
+              },
+            },
+          },
+          '/api/admin/settings/payments': {
+            get: {
+              tags: ['Admin - Settings'],
+              summary: 'Get payment settings',
+              description: 'Get current payment provider and escrow settings',
+              security: [{ BearerAuth: [] }],
+              responses: {
+                200: {
+                  description: 'Payment settings retrieved',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          status: { type: 'string' },
+                          data: { $ref: '#/components/schemas/PaymentSettings' },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            patch: {
+              tags: ['Admin - Settings'],
+              summary: 'Update payment settings',
+              description: 'Update payment provider and escrow settings',
+              security: [{ BearerAuth: [] }],
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        paymentProvider: { type: 'string' },
+                        payoutProvider: { type: 'string' },
+                        escrowReleaseTrigger: {
+                          type: 'string',
+                          enum: ['Attendant Verification', 'Auto'],
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+              responses: {
+                200: { description: 'Payment settings updated' },
+              },
+            },
+          },
+          '/api/admin/settings/kyc': {
+            get: {
+              tags: ['Admin - Settings'],
+              summary: 'Get KYC settings',
+              description: 'Get current KYC verification requirements',
+              security: [{ BearerAuth: [] }],
+              responses: {
+                200: {
+                  description: 'KYC settings retrieved',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          status: { type: 'string' },
+                          data: { $ref: '#/components/schemas/KycSettings' },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            patch: {
+              tags: ['Admin - Settings'],
+              summary: 'Update KYC settings',
+              description: 'Update KYC verification requirements',
+              security: [{ BearerAuth: [] }],
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        kycRequiredToJoin: { type: 'boolean' },
+                        kycProvider: { type: 'string' },
+                        ninVerification: { type: 'string', enum: ['Enabled', 'Disabled'] },
+                      },
+                    },
+                  },
+                },
+              },
+              responses: {
+                200: { description: 'KYC settings updated' },
+              },
+            },
+          },
+          '/api/admin/settings/fee-history': {
+            get: {
+              tags: ['Admin - Settings'],
+              summary: 'Get fee history',
+              description: 'List fee change history with optional filters',
+              security: [{ BearerAuth: [] }],
+              parameters: [
+                {
+                  name: 'type',
+                  in: 'query',
+                  schema: {
+                    type: 'string',
+                    enum: [
+                      'processing_fee',
+                      'defaultTransportFee',
+                      'hub_transport_fee',
+                      'product_transport_fee',
+                      'insurance_rate',
+                    ],
+                  },
+                },
+                { name: 'page', in: 'query', schema: { type: 'integer', default: 1 } },
+                { name: 'limit', in: 'query', schema: { type: 'integer', default: 20 } },
+              ],
+              responses: {
+                200: {
+                  description: 'Fee history retrieved',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          status: { type: 'string' },
+                          data: {
+                            type: 'object',
+                            properties: {
+                              total: { type: 'integer' },
+                              page: { type: 'integer' },
+                              totalPages: { type: 'integer' },
+                              records: {
+                                type: 'array',
+                                items: {
+                                  type: 'object',
+                                  properties: {
+                                    fee_type: { type: 'string' },
+                                    label: { type: 'string' },
+                                    old_value: { type: 'number' },
+                                    new_value: { type: 'number' },
+                                    changed_by: { type: 'string' },
+                                    changed_at: { type: 'string', format: 'date-time' },
+                                  },
+                                },
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+
+          // ==================== DANGER ZONE ROUTES ====================
+          '/api/admin/platform/pause': {
+            post: {
+              tags: ['Admin - Danger Zone'],
+              summary: 'Pause platform',
+              description: 'Pause the platform - students cannot create or join slashes',
+              security: [{ BearerAuth: [] }],
+              responses: {
+                200: {
+                  description: 'Platform paused',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          status: { type: 'string' },
+                          data: {
+                            type: 'object',
+                            properties: {
+                              status: { type: 'string' },
+                              pausedAt: { type: 'string', format: 'date-time' },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          '/api/admin/platform/resume': {
+            post: {
+              tags: ['Admin - Danger Zone'],
+              summary: 'Resume platform',
+              description: 'Resume platform operations',
+              security: [{ BearerAuth: [] }],
+              responses: {
+                200: {
+                  description: 'Platform resumed',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          status: { type: 'string' },
+                          data: {
+                            type: 'object',
+                            properties: {
+                              status: { type: 'string' },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          '/api/admin/platform/disable-signups': {
+            post: {
+              tags: ['Admin - Danger Zone'],
+              summary: 'Disable signups',
+              description: 'Prevent new users from registering',
+              security: [{ BearerAuth: [] }],
+              responses: {
+                200: {
+                  description: 'Signups disabled',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          status: { type: 'string' },
+                          data: {
+                            type: 'object',
+                            properties: {
+                              signupsEnabled: { type: 'boolean' },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          '/api/admin/platform/enable-signups': {
+            post: {
+              tags: ['Admin - Danger Zone'],
+              summary: 'Enable signups',
+              description: 'Allow new users to register',
+              security: [{ BearerAuth: [] }],
+              responses: {
+                200: {
+                  description: 'Signups enabled',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          status: { type: 'string' },
+                          data: {
+                            type: 'object',
+                            properties: {
+                              signupsEnabled: { type: 'boolean' },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          '/api/admin/platform/freeze-escrow': {
+            post: {
+              tags: ['Admin - Danger Zone'],
+              summary: 'Freeze escrow',
+              description: 'Freeze all escrow balances platform-wide - no payouts processed',
+              security: [{ BearerAuth: [] }],
+              responses: {
+                200: {
+                  description: 'Escrow frozen',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          status: { type: 'string' },
+                          data: {
+                            type: 'object',
+                            properties: {
+                              escrowFrozen: { type: 'boolean' },
+                              frozenAt: { type: 'string', format: 'date-time' },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          '/api/admin/platform/unfreeze-escrow': {
+            post: {
+              tags: ['Admin - Danger Zone'],
+              summary: 'Unfreeze escrow',
+              description: 'Unfreeze escrow balances',
+              security: [{ BearerAuth: [] }],
+              responses: {
+                200: {
+                  description: 'Escrow unfrozen',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          status: { type: 'string' },
+                          data: {
+                            type: 'object',
+                            properties: {
+                              escrowFrozen: { type: 'boolean' },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+
+          // ==================== PRODUCTS ROUTES ====================
           '/api/products': {
             get: {
               tags: ['Products'],
@@ -412,6 +1481,8 @@
               responses: { 200: { description: 'Status updated' } },
             },
           },
+
+          // ==================== SLASH ROUTES ====================
           '/api/slash/': {
             get: {
               tags: ['Slash'],
@@ -477,8 +1548,6 @@
               parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
               responses: { 200: { description: 'Slash deleted' } },
             },
-          },
-          '/api/slash/{id}': {
             post: {
               tags: ['Slash'],
               summary: 'Join slash',
@@ -494,16 +1563,22 @@
               responses: { 200: { description: 'Left slash' } },
             },
           },
-          '/api/slash/qr/{id}': {
+          '/api/slash/qr': {
             get: {
               tags: ['Slash'],
               summary: 'Get QR code for slash',
               security: [{ BearerAuth: [] }],
-              parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+              parameters: [
+                {
+                  name: 'id',
+                  in: 'query',
+                  description: 'Slash ID',
+                  required: true,
+                  schema: { type: 'string' },
+                },
+              ],
               responses: { 200: { description: 'QR code retrieved' } },
             },
-          },
-          '/api/slash/v/qr': {
             post: {
               tags: ['Slash'],
               summary: 'Verify QR code',
@@ -525,6 +1600,8 @@
               responses: { 200: { description: 'QR verified' } },
             },
           },
+
+          // ==================== HUB ROUTES ====================
           '/api/hub/': {
             get: {
               tags: ['Hub'],
@@ -589,32 +1666,8 @@
               responses: { 200: { description: 'Rating created' } },
             },
           },
-          '/api/auth/attendant/signin': {
-            post: {
-              tags: ['Attendant Auth'],
-              summary: 'Attendant signin',
-              description: 'Login with email/phone and password',
-              requestBody: {
-                required: true,
-                content: {
-                  'application/json': {
-                    schema: {
-                      type: 'object',
-                      properties: {
-                        identifier: { type: 'string', description: 'Email or phone number' },
-                        password: { type: 'string', format: 'password' },
-                      },
-                      required: ['identifier', 'password'],
-                    },
-                  },
-                },
-              },
-              responses: {
-                200: { description: 'Login successful' },
-                400: { description: 'Invalid credentials' },
-              },
-            },
-          },
+
+          // ==================== ATTENDANT ROUTES ====================
           '/api/attendant/dashboard': {
             get: {
               tags: ['Attendant'],
@@ -624,6 +1677,8 @@
               responses: { 200: { description: 'Dashboard data' } },
             },
           },
+
+          // ==================== NOTIFICATION ROUTES ====================
           '/api/notifications': {
             get: {
               tags: ['Notifications'],
@@ -642,6 +1697,8 @@
               responses: { 200: { description: 'User notifications' } },
             },
           },
+
+          // ==================== TRANSACTION ROUTES ====================
           '/api/transaction': {
             get: {
               tags: ['Transactions'],
@@ -677,32 +1734,8 @@
               responses: { 200: { description: 'Webhook processed' } },
             },
           },
-          '/api/auth/admin/signin': {
-            post: {
-              tags: ['Admin - Auth'],
-              summary: 'Admin signin',
-              description: 'Login with email/phone and password',
-              requestBody: {
-                required: true,
-                content: {
-                  'application/json': {
-                    schema: {
-                      type: 'object',
-                      properties: {
-                        identifier: { type: 'string', description: 'Email or phone number' },
-                        password: { type: 'string', format: 'password' },
-                      },
-                      required: ['identifier', 'password'],
-                    },
-                  },
-                },
-              },
-              responses: {
-                200: { description: 'Login successful' },
-                400: { description: 'Invalid credentials' },
-              },
-            },
-          },
+
+          // ==================== ADMIN USER MANAGEMENT ROUTES ====================
           '/api/admin/users': {
             get: {
               tags: ['Admin - Users'],
@@ -756,6 +1789,8 @@
               responses: { 200: { description: 'User suspended' } },
             },
           },
+
+          // ==================== ADMIN DASHBOARD ROUTES ====================
           '/api/admin/stats': {
             get: {
               tags: ['Admin - Dashboard'],
@@ -765,6 +1800,8 @@
               responses: { 200: { description: 'Statistics data' } },
             },
           },
+
+          // ==================== ADMIN SLASH MANAGEMENT ROUTES ====================
           '/api/admin/slashes/search': {
             get: {
               tags: ['Admin - Slashes'],
@@ -790,6 +1827,8 @@
               responses: { 200: { description: 'Slash dissolved' } },
             },
           },
+
+          // ==================== ADMIN HUB MANAGEMENT ROUTES ====================
           '/api/admin/hubs': {
             get: {
               tags: ['Admin - Hubs'],
@@ -844,7 +1883,6 @@
               tags: ['Admin - Hubs'],
               summary: 'Change hub status',
               security: [{ BearerAuth: [] }],
-
               requestBody: {
                 required: true,
                 content: {
@@ -863,6 +1901,8 @@
               responses: { 200: { description: 'Status updated' } },
             },
           },
+
+          // ==================== ADMIN ATTENDANT MANAGEMENT ROUTES ====================
           '/api/admin/hubs/attendant': {
             post: {
               tags: ['Admin - Attendants'],
@@ -923,7 +1963,6 @@
               summary: 'Reset attendant PIN',
               security: [{ BearerAuth: [] }],
               parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
-
               responses: { 200: { description: 'PIN reset' } },
             },
           },
@@ -949,6 +1988,8 @@
               responses: { 200: { description: 'Status updated' } },
             },
           },
+
+          // ==================== WAITLIST ROUTES ====================
           '/api/notifications/waitlist': {
             post: {
               tags: ['Waitlists'],
@@ -963,7 +2004,6 @@
                   description: 'Waitlist endpoint access token',
                 },
               ],
-              // headers: { 'waitlist-token': 'TOKEN YOUR_WAITLIST_TOKEN_HERE' },
               requestBody: {
                 required: true,
                 content: {
@@ -982,7 +2022,7 @@
                 },
               },
               responses: {
-                200: { description: 'Login successful' },
+                200: { description: 'Joined waitlist successfully' },
                 400: { description: 'Invalid credentials' },
               },
             },

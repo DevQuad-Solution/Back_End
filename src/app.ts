@@ -5,19 +5,23 @@ import dotenv from 'dotenv';
 import morgan from 'morgan';
 import http from 'http';
 import corsOptions from './config/cors';
-import connectToDatabase from './config/db';
-import { readdirSync } from 'fs';
+import connectToDatabase, { initializeAISettings } from './config/db';
+import fs, { readdirSync } from 'fs';
 import path from 'path';
 import { resSender } from './utils/responseService';
 import { useSocket } from './utils/websocket';
 import { reqRateLimit } from './middlewares/rateLimiter';
+import { startRadarJob } from './jobs/radarJob';
 
 // Load environment variables
 dotenv.config();
 
 // Database backup
-import './utils/dbBackup';
+import './jobs/dbBackup';
 import helmetConfig from './config/helmet';
+import { initializeSettings } from './controllers/admin/settingsControllers';
+
+startRadarJob();
 
 const app: Application = express();
 const server = http.createServer(app);
@@ -27,9 +31,7 @@ const PORT = process.env.PORT || 5004;
 useSocket(server);
 
 // Apply helmet with CSP that allows external resources
-app.use(
-  helmet(helmetConfig),
-);
+app.use(helmet(helmetConfig));
 
 app.use(cors(corsOptions));
 app.use(reqRateLimit);
@@ -85,6 +87,12 @@ for (const file of routeFiles) {
 app.use((req, res, next) => {
   return resSender(res, 404, 'error', 'Route not found!');
 });
+
+// Ensure the temp directory exists
+const tempDir = path.join(__dirname, '../temp');
+if (!fs.existsSync(tempDir)) {
+  fs.mkdirSync(tempDir, { recursive: true });
+}
 
 // connect db and start server
 connectToDatabase()

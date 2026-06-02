@@ -131,7 +131,7 @@ const rateHub = async (req, res) => {
             comment,
             slash: slashId,
         }, {
-            new: true,
+            returnDocument: 'after',
             upsert: true,
             setDefaultsOnInsert: true,
         });

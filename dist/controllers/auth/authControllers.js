@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getAccount = exports.resetPassword = exports.sendCode = exports.attendantSignin = exports.adminSignin = exports.signin = exports.onboarding = exports.verifyCode = exports.signup = exports.getMe = void 0;
+exports.getAccount = exports.verifyKyc = exports.resetPassword = exports.sendCode = exports.attendantSignin = exports.adminSignin = exports.signin = exports.onboarding = exports.verifyCode = exports.signup = exports.getMe = void 0;
 const responseService_1 = require("../../utils/responseService");
 const modifyResponse_1 = require("../../utils/modifyResponse");
 const joi_1 = __importDefault(require("joi"));
@@ -14,6 +14,7 @@ const tokenService_1 = require("../../utils/tokenService");
 const otpService_1 = require("../../utils/otpService");
 const paymentService_1 = require("../../utils/paymentService");
 const hubAttendant_1 = require("../../models/hubAttendant");
+const platformSettings_1 = require("../../models/platformSettings");
 const jwtAccess = process.env.ACCESS_SECRET;
 const jwtRefresh = process.env.REFRESH_SECRET;
 const userMap = new Map();
@@ -29,6 +30,11 @@ const getMe = async (req, res) => {
 exports.getMe = getMe;
 const signup = async (req, res) => {
     try {
+        // Check if signup is disabled in settings
+        const settings = await platformSettings_1.PlatformSettings.findOne();
+        if (!settings?.signupsEnabled) {
+            return (0, responseService_1.resSender)(res, 400, 'fail', 'New Signups is currently disabled. Please contact support.');
+        }
         const { fullName, phoneNumber, email, password } = req.body;
         const { error } = joi_1.default.object({
             fullName: validationSchema_1.default.name,
@@ -374,6 +380,78 @@ const resetPassword = async (req, res) => {
     }
 };
 exports.resetPassword = resetPassword;
+const verifyKyc = async (req, res) => {
+    try {
+        const user = req.user;
+        const userId = user._id;
+        const { nin, consent } = req.body;
+        // Check if any file is sent
+        if (!req.files || Object.values(req.files).flat().length === 0) {
+            return (0, responseService_1.resSender)(res, 400, 'fail', 'No files uploaded');
+        }
+        let files = Object.values(req.files).flat();
+        const [image] = files;
+        const { error } = joi_1.default.object({
+            nin: joi_1.default.string().required().min(11).max(11).messages({
+                'string.base': 'NIN should be a string',
+                'string.empty': 'NIN cannot be empty',
+                'string.min': 'NIN must be 11 characters long',
+                'string.max': 'NIN must be 11 characters long',
+                'any.required': 'NIN is required',
+            }),
+            consent: validationSchema_1.default.boolean,
+        }).validate(req.body);
+        if (error) {
+            return (0, responseService_1.resSender)(res, 400, 'fail', error.details[0].message);
+        }
+        // Check if user is already verified
+        if (user.kyc?.status === account_1.KycStatus.VERIFIED) {
+            return (0, responseService_1.resSender)(res, 400, 'fail', 'User is already KYC verified');
+        }
+        // Check if NIN verification is enabled in settings
+        const settings = await platformSettings_1.PlatformSettings.findOne();
+        if (settings?.ninVerification === 'Disabled') {
+            return (0, responseService_1.resSender)(res, 400, 'fail', 'NIN verification is currently disabled. Please contact support.');
+        }
+        // Perform verification using Monnify service (matching verificationService.ts signature)
+        const verificationResult = await paymentService_1.monnifyService.validateNinForUser(userId, nin, user.name, user.phone, image?.buffer, consent);
+        if (verificationResult.verified) {
+            // Get updated user
+            const updatedUser = await account_1.Account.findById(userId);
+            if (!updatedUser)
+                return (0, responseService_1.resSender)(res, 403, 'fail', 'Something went wrong!');
+            return (0, responseService_1.resSender)(res, 200, 'success', 'KYC verification successful!', null, {
+                verified: true,
+                kycStatus: account_1.KycStatus.VERIFIED,
+                walletBalance: verificationResult.walletBalance,
+                verificationDetails: {
+                    nameMatch: verificationResult.matches.name,
+                    phoneMatch: verificationResult.matches.phone,
+                    photoMatch: verificationResult.matches.photo,
+                },
+                user: (0, modifyResponse_1.modifyUserResponse)(updatedUser),
+            });
+        }
+        else {
+            return (0, responseService_1.resSender)(res, 400, 'fail', 'KYC verification failed. Please ensure your NIN details match your profile information.', null, {
+                verified: false,
+                kycStatus: account_1.KycStatus.REJECTED,
+                walletBalance: verificationResult.walletBalance,
+                verificationDetails: {
+                    nameMatch: verificationResult.matches.name,
+                    phoneMatch: verificationResult.matches.phone,
+                    photoMatch: verificationResult.matches.photo,
+                },
+                message: 'Name mismatch detected. Please update your profile or contact support.',
+            });
+        }
+    }
+    catch (error) {
+        console.error('KYC verification error:', error);
+        return (0, responseService_1.errorHandler)(error, res, error.message || 'Error verifying KYC, please try again!');
+    }
+};
+exports.verifyKyc = verifyKyc;
 const getAccount = async (identifier, id = false) => {
     try {
         let query;

@@ -13,6 +13,8 @@ const product_1 = require("../../models/product");
 const qrService_1 = __importDefault(require("../../utils/qrService"));
 const encryption_1 = require("../../utils/encryption");
 const notificationService_1 = require("../../utils/notificationService");
+const aiService_1 = require("../../utils/aiService");
+const aiService = new aiService_1.AIService();
 const generateClaimCode = (slashId, userId) => {
     const slashPart = slashId.toString().slice(-4).toUpperCase();
     const userPart = userId.toString().slice(-4).toUpperCase();
@@ -35,8 +37,11 @@ const createSlash = async (req, res) => {
         }).validate(req.body);
         if (error)
             return (0, responseService_1.resSender)(res, 400, 'fail', error.details[0].message);
-        if (!req.user?.emailVerified)
-            return (0, responseService_1.resSender)(res, 400, 'fail', 'Please verify your account to proceed!');
+        if (!req.user ||
+            req.user.role !== account_1.AppRole.USER ||
+            req.user.kyc?.status !== account_1.KycStatus.VERIFIED) {
+            return (0, responseService_1.resSender)(res, 400, 'fail', 'Only verified user accounts can create a slash!');
+        }
         // Calculate & deduct price of one slot for the slash
         const product = await product_1.Product.findById(productId);
         if (!product)
@@ -78,8 +83,24 @@ const createSlash = async (req, res) => {
             { path: 'product', select: 'name pricePerSlot totalValue category noOfSlots quantity emoji' },
             { path: 'hub', select: 'name city state address' },
         ]);
+        const aiLaunchMessage = await aiService.generateSlashLaunchMessage({
+            productName: (updatedSlash?.product).name,
+            category: (updatedSlash?.product).category,
+            pricePerSlot: (updatedSlash?.product).pricePerSlot,
+            totalValue: (updatedSlash?.product).totalValue,
+            noOfSlots: (updatedSlash?.product).noOfSlots,
+            quantity: (updatedSlash?.product).quantity,
+            emoji: (updatedSlash?.product).emoji ?? '',
+            timeLimit,
+            hubName: (updatedSlash?.hub).name,
+            hubCity: (updatedSlash?.hub).city,
+            hubState: (updatedSlash?.hub).state,
+        });
         await (0, notificationService_1.addNotification)('Joined Slash', `Joined Slash ${updatedSlash?._id.toString().substring(20)} - ${(updatedSlash?.product).name}`, [userId]);
-        return (0, responseService_1.resSender)(res, 200, 'success', 'Slash created successfully!', null, updatedSlash);
+        return (0, responseService_1.resSender)(res, 200, 'success', 'Slash created successfully!', null, {
+            slash: updatedSlash,
+            aiLaunchMessage,
+        });
     }
     catch (error) {
         return (0, responseService_1.errorHandler)(error, res, 'Error creating slash!');
@@ -377,10 +398,10 @@ exports.deleteSlash = deleteSlash;
 const getQrForSlash = async (req, res) => {
     try {
         const userId = req.user?._id;
-        const { id } = req.params;
+        const { id } = req.query;
         const { error } = joi_1.default.object({
             id: validationSchema_1.default.objectId,
-        }).validate(req.params);
+        }).validate(req.query);
         if (error)
             return (0, responseService_1.resSender)(res, 400, 'fail', error.details[0].message);
         // Find the slash and get the QR code for the user

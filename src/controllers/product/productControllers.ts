@@ -6,6 +6,9 @@ import Joi from 'joi';
 import validationSchema from '../../utils/validationSchema';
 import { Schema } from 'mongoose';
 import { Product } from '../../models/product';
+import { AIService } from '../../utils/aiService';
+
+const aiService = new AIService();
 
 export const fetchProducts = async (req: Request, res: Response) => {
   try {
@@ -44,7 +47,21 @@ export const addProducts = async (req: Request, res: Response) => {
       pricePerSlot: totalValue / noOfSlots,
     });
     await newProduct.save();
-    return resSender(res, 201, 'success', 'Product added!', null, newProduct);
+
+    const aiProductCopy = await aiService.generateProductMarketingCopy({
+      name,
+      category,
+      description,
+      emoji,
+      noOfSlots,
+      totalValue,
+      quantity,
+    });
+
+    return resSender(res, 201, 'success', 'Product added!', null, {
+      product: newProduct,
+      aiProductCopy,
+    });
   } catch (error: any) {
     return errorHandler(error, res, 'Error adding product!');
   }

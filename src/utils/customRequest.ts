@@ -5,6 +5,8 @@ import { IAttendant } from '../models/hubAttendant';
 export interface Request extends ExpressRequest {
   user?: IAccount | IAttendant | IAdmin;
   userRole?: string;
+  file?: Express.Multer.File;
+  files?: Express.Multer.File[] | { [fieldname: string]: Express.Multer.File[] };
 }
 
 // export type CustomRequestHandler = RequestHandler<

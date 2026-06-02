@@ -6,11 +6,13 @@ import Joi from 'joi';
 import bcrypt from 'bcryptjs';
 import validationSchema from '../../utils/validationSchema';
 import { Schema, Types } from 'mongoose';
-import { Account, Admin, AppRole, IAccount, IAdmin } from '../../models/account';
+import { Account, Admin, AppRole, IAccount, IAdmin, KycStatus } from '../../models/account';
 import { generateToken, saveCookies, verifyToken } from '../../utils/tokenService';
 import { createAndSendOtp, verifyOtp } from '../../utils/otpService';
 import { MonnifyReservedAccountOptions, monnifyService } from '../../utils/paymentService';
 import { Attendant, IAttendant } from '../../models/hubAttendant';
+import { verifyNINForUser } from '../../utils/verificationService';
+import { PlatformSettings } from '../../models/platformSettings';
 
 const jwtAccess = process.env.ACCESS_SECRET as string;
 const jwtRefresh = process.env.REFRESH_SECRET as string;
@@ -37,6 +39,17 @@ export const getMe = async (req: Request, res: Response) => {
 
 export const signup = async (req: Request, res: Response) => {
   try {
+    // Check if signup is disabled in settings
+    const settings = await PlatformSettings.findOne();
+    if (!settings?.signupsEnabled) {
+      return resSender(
+        res,
+        400,
+        'fail',
+        'New Signups is currently disabled. Please contact support.',
+      );
+    }
+
     const { fullName, phoneNumber, email, password } = req.body as {
       fullName: string;
       phoneNumber: string;
@@ -415,6 +428,102 @@ export const resetPassword = async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('Failed to verify code: ', error);
     return resSender(res, 500, 'error', error.message || 'Server Error');
+  }
+};
+
+export const verifyKyc = async (req: Request, res: Response) => {
+  try {
+    const user = req.user as IAccount;
+    const userId = user._id!;
+    const { nin, consent } = req.body;
+
+    // Check if any file is sent
+    if (!req.files || Object.values(req.files).flat().length === 0) {
+      return resSender(res, 400, 'fail', 'No files uploaded');
+    }
+    let files = Object.values(req.files).flat();
+    const [image] = files;
+
+    const { error } = Joi.object({
+      nin: Joi.string().required().min(11).max(11).messages({
+        'string.base': 'NIN should be a string',
+        'string.empty': 'NIN cannot be empty',
+        'string.min': 'NIN must be 11 characters long',
+        'string.max': 'NIN must be 11 characters long',
+        'any.required': 'NIN is required',
+      }),
+      consent: validationSchema.boolean,
+    }).validate(req.body);
+
+    if (error) {
+      return resSender(res, 400, 'fail', error.details[0].message);
+    }
+
+    // Check if user is already verified
+    if (user.kyc?.status === KycStatus.VERIFIED) {
+      return resSender(res, 400, 'fail', 'User is already KYC verified');
+    }
+
+    // Check if NIN verification is enabled in settings
+    const settings = await PlatformSettings.findOne();
+    if (settings?.ninVerification === 'Disabled') {
+      return resSender(
+        res,
+        400,
+        'fail',
+        'NIN verification is currently disabled. Please contact support.',
+      );
+    }
+
+    // Perform verification using Monnify service (matching verificationService.ts signature)
+    const verificationResult = await monnifyService.validateNinForUser(
+      userId,
+      nin,
+      user.name,
+      user.phone,
+      image?.buffer,
+      consent,
+    );
+
+    if (verificationResult.verified) {
+      // Get updated user
+      const updatedUser = await Account.findById(userId);
+      if (!updatedUser) return resSender(res, 403, 'fail', 'Something went wrong!');
+
+      return resSender(res, 200, 'success', 'KYC verification successful!', null, {
+        verified: true,
+        kycStatus: KycStatus.VERIFIED,
+        walletBalance: verificationResult.walletBalance,
+        verificationDetails: {
+          nameMatch: verificationResult.matches.name,
+          phoneMatch: verificationResult.matches.phone,
+          photoMatch: verificationResult.matches.photo,
+        },
+        user: modifyUserResponse(updatedUser),
+      });
+    } else {
+      return resSender(
+        res,
+        400,
+        'fail',
+        'KYC verification failed. Please ensure your NIN details match your profile information.',
+        null,
+        {
+          verified: false,
+          kycStatus: KycStatus.REJECTED,
+          walletBalance: verificationResult.walletBalance,
+          verificationDetails: {
+            nameMatch: verificationResult.matches.name,
+            phoneMatch: verificationResult.matches.phone,
+            photoMatch: verificationResult.matches.photo,
+          },
+          message: 'Name mismatch detected. Please update your profile or contact support.',
+        },
+      );
+    }
+  } catch (error: any) {
+    console.error('KYC verification error:', error);
+    return errorHandler(error, res, error.message || 'Error verifying KYC, please try again!');
   }
 };
 

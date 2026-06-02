@@ -8,6 +8,8 @@ const responseService_1 = require("../../utils/responseService");
 const joi_1 = __importDefault(require("joi"));
 const validationSchema_1 = __importDefault(require("../../utils/validationSchema"));
 const product_1 = require("../../models/product");
+const aiService_1 = require("../../utils/aiService");
+const aiService = new aiService_1.AIService();
 const fetchProducts = async (req, res) => {
     try {
         const allProducts = await product_1.Product.find();
@@ -45,7 +47,19 @@ const addProducts = async (req, res) => {
             pricePerSlot: totalValue / noOfSlots,
         });
         await newProduct.save();
-        return (0, responseService_1.resSender)(res, 201, 'success', 'Product added!', null, newProduct);
+        const aiProductCopy = await aiService.generateProductMarketingCopy({
+            name,
+            category,
+            description,
+            emoji,
+            noOfSlots,
+            totalValue,
+            quantity,
+        });
+        return (0, responseService_1.resSender)(res, 201, 'success', 'Product added!', null, {
+            product: newProduct,
+            aiProductCopy,
+        });
     }
     catch (error) {
         return (0, responseService_1.errorHandler)(error, res, 'Error adding product!');

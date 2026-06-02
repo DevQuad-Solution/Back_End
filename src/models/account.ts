@@ -20,6 +20,8 @@ export interface IAccount extends Document {
     accountNumber: string;
     accountRef: string;
   };
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface IAdmin extends Document {

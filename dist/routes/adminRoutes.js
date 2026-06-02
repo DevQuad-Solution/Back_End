@@ -4,6 +4,7 @@ const express_1 = require("express");
 const authMiddleware_1 = require("../middlewares/authMiddleware");
 const roleMiddleware_1 = require("../middlewares/roleMiddleware");
 const adminControllers_1 = require("../controllers/admin/adminControllers");
+const settingsControllers_1 = require("../controllers/admin/settingsControllers");
 const route = (0, express_1.Router)();
 // User Management Routes
 route.get('/admin/users', authMiddleware_1.authMiddleware, (0, roleMiddleware_1.requireRole)('admin'), adminControllers_1.fetchAllUsers);
@@ -26,4 +27,26 @@ route.post('/admin/attendants', authMiddleware_1.authMiddleware, (0, roleMiddlew
 route.get('/admin/attendants', authMiddleware_1.authMiddleware, (0, roleMiddleware_1.requireRole)('admin'), adminControllers_1.fetchAttendants);
 route.patch('/admin/attendants/:id/pin', authMiddleware_1.authMiddleware, (0, roleMiddleware_1.requireRole)('admin'), adminControllers_1.resetAttendantPin);
 route.patch('/admin/attendants/status', authMiddleware_1.authMiddleware, (0, roleMiddleware_1.requireRole)('admin'), adminControllers_1.changeAttendantStatus);
+// ========== New Settings Routes ==========
+// Feature Flags
+route.get('/admin/settings/flags', authMiddleware_1.authMiddleware, (0, roleMiddleware_1.requireRole)('admin'), settingsControllers_1.getFeatureFlags);
+route.patch('/admin/settings/flags/:flag_key', authMiddleware_1.authMiddleware, (0, roleMiddleware_1.requireRole)('admin'), settingsControllers_1.toggleFeatureFlag);
+// Platform Config
+route.get('/admin/settings/config', authMiddleware_1.authMiddleware, (0, roleMiddleware_1.requireRole)('admin'), settingsControllers_1.getPlatformConfig);
+route.patch('/admin/settings/config', authMiddleware_1.authMiddleware, (0, roleMiddleware_1.requireRole)('admin'), settingsControllers_1.updatePlatformConfig);
+// Payment Settings
+route.get('/admin/settings/payments', authMiddleware_1.authMiddleware, (0, roleMiddleware_1.requireRole)('admin'), settingsControllers_1.getPaymentSettings);
+route.patch('/admin/settings/payments', authMiddleware_1.authMiddleware, (0, roleMiddleware_1.requireRole)('admin'), settingsControllers_1.updatePaymentSettings);
+// KYC Settings
+route.get('/admin/settings/kyc', authMiddleware_1.authMiddleware, (0, roleMiddleware_1.requireRole)('admin'), settingsControllers_1.getKycSettings);
+route.patch('/admin/settings/kyc', authMiddleware_1.authMiddleware, (0, roleMiddleware_1.requireRole)('admin'), settingsControllers_1.updateKycSettings);
+// Fee History
+route.get('/admin/settings/fee-history', authMiddleware_1.authMiddleware, (0, roleMiddleware_1.requireRole)('admin'), settingsControllers_1.getFeeHistory);
+// Danger Zone
+route.post('/admin/platform/pause', authMiddleware_1.authMiddleware, (0, roleMiddleware_1.requireRole)('admin'), settingsControllers_1.pausePlatform);
+route.post('/admin/platform/resume', authMiddleware_1.authMiddleware, (0, roleMiddleware_1.requireRole)('admin'), settingsControllers_1.resumePlatform);
+route.post('/admin/platform/disable-signups', authMiddleware_1.authMiddleware, (0, roleMiddleware_1.requireRole)('admin'), settingsControllers_1.disableSignups);
+route.post('/admin/platform/enable-signups', authMiddleware_1.authMiddleware, (0, roleMiddleware_1.requireRole)('admin'), settingsControllers_1.enableSignups);
+route.post('/admin/platform/freeze-escrow', authMiddleware_1.authMiddleware, (0, roleMiddleware_1.requireRole)('admin'), settingsControllers_1.freezeEscrow);
+route.post('/admin/platform/unfreeze-escrow', authMiddleware_1.authMiddleware, (0, roleMiddleware_1.requireRole)('admin'), settingsControllers_1.unfreezeEscrow);
 exports.default = route;
