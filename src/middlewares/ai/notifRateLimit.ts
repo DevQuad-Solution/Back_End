@@ -3,6 +3,7 @@ import { Request } from '../../utils/customRequest';
 import { NextFunction, Response } from 'express';
 import { errorHandler, resSender } from '../../utils/responseService';
 
+console.log('Redis Url: ', process.env.REDIS_URL);
 const redis = new Redis(process.env.REDIS_URL!);
 redis.on('connect', () => {
   console.log('Redis connected');
