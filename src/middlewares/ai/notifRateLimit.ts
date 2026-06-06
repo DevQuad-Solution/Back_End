@@ -4,6 +4,9 @@ import { NextFunction, Response } from 'express';
 import { errorHandler, resSender } from '../../utils/responseService';
 
 const redis = new Redis(process.env.REDIS_URL!);
+redis.on('connect', () => {
+  console.log('Redis connected');
+});
 
 export const canNotify = async (userId: string, channel: string): Promise<boolean> => {
   try {

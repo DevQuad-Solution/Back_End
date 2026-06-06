@@ -6,6 +6,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.notifRateLimitMiddleware = exports.canNotify = void 0;
 const ioredis_1 = __importDefault(require("ioredis"));
 const redis = new ioredis_1.default(process.env.REDIS_URL);
+redis.on('connect', () => {
+    console.log('Redis connected');
+});
 const canNotify = async (userId, channel) => {
     try {
         const today = new Date().toISOString().slice(0, 10);
