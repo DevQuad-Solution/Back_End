@@ -2027,6 +2027,18 @@
               },
             },
           },
+          '/api/admin/waitlist': {
+            get:{
+              tags: ['Waitlists'],
+              summary: 'Fetch Waitlists',
+              description: 'Fetch the waitlist with their information (Admin only)',
+              security: [{ BearerAuth: [] }],
+              responses: {
+                200: { description: 'Waitlists fetched successfully' },
+                403: { description: 'Insufficient Permission' },
+              },
+            }
+          }
         },
       };
 

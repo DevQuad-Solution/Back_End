@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.generatePin = exports.changeAttendantStatus = exports.resetAttendantPin = exports.fetchAttendants = exports.createAttendant = exports.asignAttendantToHub = exports.fetchHubById = exports.createHub = exports.changeHubStatus = exports.fetchHubs = exports.suspendUser = exports.dissolveSlash = exports.searchSlash = exports.getStats = exports.getUserById = exports.searchUsers = exports.fetchAllUsers = void 0;
+exports.generatePin = exports.fetchAllWaitlist = exports.changeAttendantStatus = exports.resetAttendantPin = exports.fetchAttendants = exports.createAttendant = exports.asignAttendantToHub = exports.fetchHubById = exports.createHub = exports.changeHubStatus = exports.fetchHubs = exports.suspendUser = exports.dissolveSlash = exports.searchSlash = exports.getStats = exports.getUserById = exports.searchUsers = exports.fetchAllUsers = void 0;
 const responseService_1 = require("../../utils/responseService");
 const modifyResponse_1 = require("../../utils/modifyResponse");
 const joi_1 = __importDefault(require("joi"));
@@ -12,6 +12,7 @@ const account_1 = require("../../models/account");
 const slash_1 = require("../../models/slash");
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const hubAttendant_1 = require("../../models/hubAttendant");
+const waitlist_1 = require("../../models/waitlist");
 const fetchAllUsers = async (req, res) => {
     try {
         let { page = 1, limit = 20 } = req.query;
@@ -577,6 +578,16 @@ const changeAttendantStatus = async (req, res) => {
     }
 };
 exports.changeAttendantStatus = changeAttendantStatus;
+const fetchAllWaitlist = async (req, res) => {
+    try {
+        const waitlists = await waitlist_1.Waitlist.find();
+        return (0, responseService_1.resSender)(res, 200, 'success', 'Waitlists fetched', null, waitlists);
+    }
+    catch (error) {
+        return (0, responseService_1.errorHandler)(error, res, 'Error fetching waitlists!');
+    }
+};
+exports.fetchAllWaitlist = fetchAllWaitlist;
 const generatePin = () => {
     let pin = '567890'; //Math.floor(100000 + Math.random() * 900000).toString();
     const hashedPin = bcryptjs_1.default.hashSync(pin, bcryptjs_1.default.genSaltSync(15));

@@ -27,7 +27,8 @@ route.post('/admin/attendants', authMiddleware_1.authMiddleware, (0, roleMiddlew
 route.get('/admin/attendants', authMiddleware_1.authMiddleware, (0, roleMiddleware_1.requireRole)('admin'), adminControllers_1.fetchAttendants);
 route.patch('/admin/attendants/:id/pin', authMiddleware_1.authMiddleware, (0, roleMiddleware_1.requireRole)('admin'), adminControllers_1.resetAttendantPin);
 route.patch('/admin/attendants/status', authMiddleware_1.authMiddleware, (0, roleMiddleware_1.requireRole)('admin'), adminControllers_1.changeAttendantStatus);
-// ========== New Settings Routes ==========
+// Waitlist
+route.get('/admin/waitlist', authMiddleware_1.authMiddleware, (0, roleMiddleware_1.requireRole)('admin'), adminControllers_1.fetchAllWaitlist);
 // Feature Flags
 route.get('/admin/settings/flags', authMiddleware_1.authMiddleware, (0, roleMiddleware_1.requireRole)('admin'), settingsControllers_1.getFeatureFlags);
 route.patch('/admin/settings/flags/:flag_key', authMiddleware_1.authMiddleware, (0, roleMiddleware_1.requireRole)('admin'), settingsControllers_1.toggleFeatureFlag);

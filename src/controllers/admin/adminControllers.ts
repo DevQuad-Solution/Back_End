@@ -10,6 +10,7 @@ import { Slash, SlashStatus } from '../../models/slash';
 import { IProduct } from '../../models/product';
 import bcrypt from 'bcryptjs';
 import { Attendant, Hub, HubRating, HubStatus, IAttendant, IHub } from '../../models/hubAttendant';
+import { Waitlist } from '../../models/waitlist';
 
 export const fetchAllUsers = async (req: Request, res: Response) => {
   try {
@@ -637,6 +638,16 @@ export const changeAttendantStatus = async (req: Request, res: Response) => {
     return resSender(res, 200, 'success', 'Attendant status changed!');
   } catch (error: any) {
     return errorHandler(Error, res, 'Error changing status!');
+  }
+};
+
+export const fetchAllWaitlist = async (req: Request, res: Response) => {
+  try {
+    const waitlists = await Waitlist.find();
+
+    return resSender(res, 200, 'success', 'Waitlists fetched', null, waitlists);
+  } catch (error: any) {
+    return errorHandler(error, res, 'Error fetching waitlists!');
   }
 };
 

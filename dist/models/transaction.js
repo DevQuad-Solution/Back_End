@@ -11,7 +11,7 @@ var TrxType;
 })(TrxType || (exports.TrxType = TrxType = {}));
 const trxSchema = new mongoose_1.Schema({
     type: { type: String, enum: Object.values(TrxType) },
-    userId: { type: mongoose_1.Types.ObjectId, ref: 'Account', required: true },
+    user: { type: mongoose_1.Types.ObjectId, ref: 'Account', required: true },
     amount: { type: Number },
     trxReference: { type: String },
     trxDate: { type: Date },

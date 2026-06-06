@@ -80,4 +80,16 @@ export const trackedCompletion = async (params: TrackedCompletionParams, context
   }
 };
 
+// try {
+//   const response = openai.responses.create({
+//     model: 'gpt-5.4-mini',
+//     input: 'write a haiku about ai',
+//     store: true,
+//   });
+
+//   response.then((result) => console.log('AI test result: ', result.output_text));
+// } catch (error: any) {
+//   console.log('Error testing ai: ', error.message);
+// }
+
 export { openai };

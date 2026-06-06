@@ -146,9 +146,9 @@ export const getUserTransactionHistories = async (req: Request, res: Response) =
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
-      .populate('userId', 'name email');
+      .populate('user', 'name email');
 
-    const total = await TransactionHistory.countDocuments({ userId });
+    const total = await TransactionHistory.countDocuments({ user: userId });
 
     return resSender(res, 200, 'success', 'Transactions fetched', null, {
       transactions,

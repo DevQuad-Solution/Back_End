@@ -18,6 +18,7 @@ import {
   fetchAttendants,
   resetAttendantPin,
   changeAttendantStatus,
+  fetchAllWaitlist,
 } from '../controllers/admin/adminControllers';
 import {
   getFeatureFlags,
@@ -70,11 +71,17 @@ route.patch(
   changeAttendantStatus,
 );
 
+// Waitlist
+route.get('/admin/waitlist', authMiddleware, requireRole('admin'), fetchAllWaitlist);
 
-// ========== New Settings Routes ==========
 // Feature Flags
 route.get('/admin/settings/flags', authMiddleware, requireRole('admin'), getFeatureFlags);
-route.patch('/admin/settings/flags/:flag_key', authMiddleware, requireRole('admin'), toggleFeatureFlag);
+route.patch(
+  '/admin/settings/flags/:flag_key',
+  authMiddleware,
+  requireRole('admin'),
+  toggleFeatureFlag,
+);
 
 // Platform Config
 route.get('/admin/settings/config', authMiddleware, requireRole('admin'), getPlatformConfig);
@@ -82,7 +89,12 @@ route.patch('/admin/settings/config', authMiddleware, requireRole('admin'), upda
 
 // Payment Settings
 route.get('/admin/settings/payments', authMiddleware, requireRole('admin'), getPaymentSettings);
-route.patch('/admin/settings/payments', authMiddleware, requireRole('admin'), updatePaymentSettings);
+route.patch(
+  '/admin/settings/payments',
+  authMiddleware,
+  requireRole('admin'),
+  updatePaymentSettings,
+);
 
 // KYC Settings
 route.get('/admin/settings/kyc', authMiddleware, requireRole('admin'), getKycSettings);

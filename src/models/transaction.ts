@@ -3,7 +3,7 @@ import { Document, model, Schema, Types } from 'mongoose';
 export interface ITransactionHistory {
   type: TrxType;
   amount: number;
-  userId: Types.ObjectId;
+  user: Types.ObjectId;
   trxReference?: string;
   trxDate: Date;
   createdAt: Date;
@@ -28,7 +28,7 @@ export enum TrxType {
 const trxSchema = new Schema(
   {
     type: { type: String, enum: Object.values(TrxType) },
-    userId: { type: Types.ObjectId, ref: 'Account', required: true },
+    user: { type: Types.ObjectId, ref: 'Account', required: true },
     amount: { type: Number },
     trxReference: { type: String },
     trxDate: { type: Date },

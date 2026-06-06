@@ -132,15 +132,15 @@ const calculateFuzzySimilarity = (name1, name2) => {
     const distance = levenshteinDistance(normalized1, normalized2);
     return 1 - distance / maxLength;
 };
-// Test cases
-const testCases = [
-    //   { user: "Kolawole Moses Akintayo", nin: "Akintayo Kolawole Moses", expected: true },
-    //   { user: "Kolawole Akintayo", nin: "Akintayo Kolawole Moses", expected: true },
-    //   { user: "Akintayo Kolawole", nin: "Kolawole Moses Akintayo", expected: true },
-    { user: "Kolawo Akintayo", nin: "Kolawole Akintayo", expected: true }, // Partial match
-    //   { user: "John Doe", nin: "Jonathan Doe", expected: false }, // Different first name
-];
-testCases.forEach(({ user, nin, expected }) => {
-    const result = (0, exports.doNamesMatch)(user, nin);
-    console.log(`"${user}" vs "${nin}": ${result} (Expected: ${expected})`);
-});
+// // Test cases
+// const testCases = [
+//   { user: "Kolawole Moses Akintayo", nin: "Akintayo Kolawole Moses", expected: true },
+//   { user: "Kolawole Akintayo", nin: "Akintayo Kolawole Moses", expected: true },
+//   { user: "Akintayo Kolawole", nin: "Kolawole Moses Akintayo", expected: true },
+//   { user: "Kolawo Akintayo", nin: "Kolawole Akintayo", expected: true }, // Partial match
+//   { user: "John Doe", nin: "Jonathan Doe", expected: false }, // Different first name
+// ];
+// testCases.forEach(({ user, nin, expected }) => {
+//   const result = doNamesMatch(user, nin);
+//   console.log(`"${user}" vs "${nin}": ${result} (Expected: ${expected})`);
+// });
