@@ -7,7 +7,8 @@ import { addNotification } from '../../utils/notificationService';
 import { TransactionHistory as Transaction } from '../../models/transaction';
 import { Types } from 'mongoose';
 
-const fraudQueue = new Bull('fraud-analysis', process.env.REDIS_URL!);
+const redisUrl = process.env.REDIS_URL?.replace(/^['"]|['"]$/g, '');
+const fraudQueue = new Bull('fraud-analysis', redisUrl!);
 
 interface Layer1Context {
   nin?: string;

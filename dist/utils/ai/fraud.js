@@ -12,7 +12,8 @@ const openai_1 = require("./openai");
 const notificationService_1 = require("../../utils/notificationService");
 const transaction_1 = require("../../models/transaction");
 const mongoose_1 = require("mongoose");
-const fraudQueue = new bull_1.default('fraud-analysis', process.env.REDIS_URL);
+const redisUrl = process.env.REDIS_URL?.replace(/^['"]|['"]$/g, '');
+const fraudQueue = new bull_1.default('fraud-analysis', redisUrl);
 exports.fraudQueue = fraudQueue;
 const runLayer1 = async (userId, trigger, context) => {
     const flags = [];
