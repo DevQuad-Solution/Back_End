@@ -89,7 +89,7 @@ export const handleWebhook = async (req: Request, res: Response) => {
     // Create transaction history
     const trxHistory = new TransactionHistory({
       type: TrxType.TRANSFER,
-      userId: user._id,
+      user: user._id,
       trxReference: transaction.paymentReference,
       amount: transaction.amountPaid,
       trxDate: new Date(transaction.paidOn),
