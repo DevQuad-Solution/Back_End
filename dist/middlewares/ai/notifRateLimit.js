@@ -6,7 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.notifRateLimitMiddleware = exports.canNotify = void 0;
 const ioredis_1 = __importDefault(require("ioredis"));
 const redisUrl = process.env.REDIS_URL?.replace(/^['"]|['"]$/g, '');
-console.log(JSON.stringify(redisUrl));
+// console.log(JSON.stringify(redisUrl));
 const redis = new ioredis_1.default(redisUrl);
 redis.on('connect', () => {
     console.log('Redis connected');

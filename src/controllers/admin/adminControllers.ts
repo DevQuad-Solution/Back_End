@@ -420,7 +420,7 @@ export const changeHubStatus = async (req: Request, res: Response) => {
 
     return resSender(res, 200, 'success', 'Status changed!');
   } catch (error: any) {
-    return errorHandler(Error, res, 'Error changing status!');
+    return errorHandler(error, res, 'Error changing status!');
   }
 };
 

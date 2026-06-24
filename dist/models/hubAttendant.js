@@ -18,7 +18,7 @@ const hubSchema = new mongoose_1.Schema({
         enum: Object.values(HubStatus),
         default: HubStatus.INACTIVE,
     },
-    transportCost: { type: Number, required: true },
+    transportCost: { type: Number, required: true, default: 0 },
     attendant: { type: mongoose_1.Types.ObjectId, ref: 'Attendant' },
     revenue: { type: Number, default: 0 },
 }, { timestamps: true });

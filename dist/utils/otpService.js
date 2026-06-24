@@ -47,7 +47,7 @@ const createAndSendOtp = async (name, email, reason = 'signup') => {
             recipients: [{ address: email, name }],
         };
         const data = await (0, emailService_1.sendMail)(emailData);
-        console.log('Data rec: ', data);
+        // console.log('Data rec: ', data);
         console.log('Email Sent');
         sent = true;
         return sent;

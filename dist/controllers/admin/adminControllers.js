@@ -362,7 +362,7 @@ const changeHubStatus = async (req, res) => {
         return (0, responseService_1.resSender)(res, 200, 'success', 'Status changed!');
     }
     catch (error) {
-        return (0, responseService_1.errorHandler)(Error, res, 'Error changing status!');
+        return (0, responseService_1.errorHandler)(error, res, 'Error changing status!');
     }
 };
 exports.changeHubStatus = changeHubStatus;

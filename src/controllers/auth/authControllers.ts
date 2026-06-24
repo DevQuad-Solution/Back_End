@@ -90,6 +90,47 @@ export const signup = async (req: Request, res: Response) => {
 };
 
 /**
+ * @param email Account email
+ * @param reason Reason for code request
+ */
+export const sendCode = async (req: Request, res: Response) => {
+  try {
+    const { email, reason } = req.body;
+    const { error } = Joi.object({
+      email: validationSchema.email,
+      reason: validationSchema.reason.disallow('signup'),
+    }).validate(req.body);
+    if (error) return resSender(res, 400, 'fail', error.details[0].message);
+
+    let existingMail: UserMap | IAccount | undefined | null = await Account.findOne({
+      email: email,
+    });
+    if (!existingMail) existingMail = userMap.get(email);
+    if (!existingMail) {
+      console.log('User Email does not exist');
+      return resSender(
+        res,
+        200,
+        'success',
+        'Verification Code will be sent to your mail, if it exists!',
+      );
+    }
+
+    const emailSent = await createAndSendOtp(existingMail.name, existingMail.email, reason);
+
+    return resSender(
+      res,
+      200,
+      'success',
+      'Verification Code will be sent to your mail, if it exists!',
+    );
+  } catch (error: any) {
+    console.error('Failed to request for trial: ', error);
+    return resSender(res, 500, 'error', error.message || 'Server Error');
+  }
+};
+
+/**
  * @param code This is the verification received from user's mail
  * @param email User's email address
  * @param reason Reason for code verification
@@ -105,13 +146,17 @@ export const verifyCode = async (req: Request, res: Response) => {
     if (error) return resSender(res, 400, 'fail', error.details[0].message);
 
     const token = await verifyOtp(code, email, reason);
-    let data = userMap.get(email);
-    if (!data) return resSender(res, 400, 'fail', 'Sign up data not found!');
-    data = {
-      ...data,
-      emailVerified: true,
-    };
-    userMap.set(email, data);
+    let data;
+
+    if (reason === 'signup') {
+      data = userMap.get(email);
+      if (!data) return resSender(res, 400, 'fail', 'Sign up data not found!');
+      data = {
+        ...data,
+        emailVerified: true,
+      };
+      userMap.set(email, data);
+    }
     return resSender(res, 200, 'success', 'Code verified successfully!', null, token);
   } catch (error: any) {
     return errorHandler(error, res, 'Failed to verify code!');
@@ -231,10 +276,10 @@ export const signin = async (req: Request, res: Response) => {
 
     const [accessToken, refreshToken] = await Promise.all([
       generateToken(payload, jwtAccess, {
-        expiresIn: '30d',
+        expiresIn: '10m',
       }),
       generateToken(payload, jwtRefresh as string, {
-        expiresIn: '30d',
+        expiresIn: '1d',
       }),
     ]);
 
@@ -290,7 +335,7 @@ export const adminSignin = async (req: Request, res: Response) => {
       }),
     ]);
 
-    await saveCookies(res, 'rfst_tkn', refreshToken);
+    await saveCookies(res, 'rfst_tkn', refreshToken, 86400000);
     return resSender(res, 200, 'success', 'Sign In Successful', null, {
       admin: modifyUserResponse(admin),
       accessToken,
@@ -353,47 +398,6 @@ export const attendantSignin = async (req: Request, res: Response) => {
 };
 
 /**
- * @param email Account email
- * @param reason Reason for code request
- */
-export const sendCode = async (req: Request, res: Response) => {
-  try {
-    const { email, reason } = req.body;
-    const { error } = Joi.object({
-      email: validationSchema.email,
-      reason: validationSchema.reason.disallow('signup'),
-    }).validate(req.body);
-    if (error) return resSender(res, 400, 'fail', error.details[0].message);
-
-    let existingMail: UserMap | IAccount | undefined | null = await Account.findOne({
-      email: email,
-    });
-    if (!existingMail) existingMail = userMap.get(email);
-    if (!existingMail) {
-      console.log('User Email does not exist');
-      return resSender(
-        res,
-        200,
-        'success',
-        'Verification Code will be sent to your mail, if it exists!',
-      );
-    }
-
-    const emailSent = await createAndSendOtp(existingMail.name, existingMail.email, reason);
-
-    return resSender(
-      res,
-      200,
-      'success',
-      'Verification Code will be sent to your mail, if it exists!',
-    );
-  } catch (error: any) {
-    console.error('Failed to request for trial: ', error);
-    return resSender(res, 500, 'error', error.message || 'Server Error');
-  }
-};
-
-/**
  * @param newPassword This is the new Password that the user wants
  * @param token Token issued after code confirmation
  */
@@ -436,6 +440,7 @@ export const verifyKyc = async (req: Request, res: Response) => {
     const user = req.user as IAccount;
     const userId = user._id!;
     const { nin, consent } = req.body;
+    console.log('Receved req 1');
 
     // Check if any file is sent
     if (!req.files || Object.values(req.files).flat().length === 0) {
@@ -443,6 +448,7 @@ export const verifyKyc = async (req: Request, res: Response) => {
     }
     let files = Object.values(req.files).flat();
     const [image] = files;
+    console.log('Receved req 2, images: ', files);
 
     const { error } = Joi.object({
       nin: Joi.string().required().min(11).max(11).messages({
@@ -458,6 +464,7 @@ export const verifyKyc = async (req: Request, res: Response) => {
     if (error) {
       return resSender(res, 400, 'fail', error.details[0].message);
     }
+    console.log('Validation done');
 
     // Check if user is already verified
     if (user.kyc?.status === KycStatus.VERIFIED) {
@@ -474,6 +481,7 @@ export const verifyKyc = async (req: Request, res: Response) => {
         'NIN verification is currently disabled. Please contact support.',
       );
     }
+    console.log('Setting confirmed');
 
     // Perform verification using Monnify service (matching verificationService.ts signature)
     const verificationResult = await monnifyService.validateNinForUser(
@@ -484,6 +492,7 @@ export const verifyKyc = async (req: Request, res: Response) => {
       image?.buffer,
       consent,
     );
+    console.log('verif result gotten');
 
     if (verificationResult.verified) {
       // Get updated user

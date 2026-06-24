@@ -49,7 +49,7 @@ export const createAndSendOtp = async (name: string, email: string, reason: stri
 
     const data = await sendMail(emailData);
 
-    console.log('Data rec: ', data);
+    // console.log('Data rec: ', data);
     console.log('Email Sent');
     sent = true;
     return sent;

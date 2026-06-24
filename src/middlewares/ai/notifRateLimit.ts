@@ -5,7 +5,7 @@ import { errorHandler, resSender } from '../../utils/responseService';
 
 const redisUrl = process.env.REDIS_URL?.replace(/^['"]|['"]$/g, '');
 
-console.log(JSON.stringify(redisUrl));
+// console.log(JSON.stringify(redisUrl));
 
 const redis = new Redis(redisUrl!);
 redis.on('connect', () => {

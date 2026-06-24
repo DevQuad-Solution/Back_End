@@ -82,6 +82,7 @@ export const changeProductStatus = async (req: Request, res: Response) => {
     if (product.status === status)
       return resSender(res, 403, 'fail', `Product status is already ${product.status}`);
     product.status = status;
+    await product.save();
 
     return resSender(res, 200, 'success', 'Product status changed!');
   } catch (error: any) {
