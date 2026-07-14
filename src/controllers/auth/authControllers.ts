@@ -7,7 +7,7 @@ import bcrypt from 'bcryptjs';
 import validationSchema from '../../utils/validationSchema';
 import { Schema, Types } from 'mongoose';
 import { Account, Admin, AppRole, IAccount, IAdmin, KycStatus } from '../../models/account';
-import { generateToken, saveCookies, verifyToken } from '../../utils/tokenService';
+import { generateToken, getCookies, saveCookies, verifyToken } from '../../utils/tokenService';
 import { createAndSendOtp, verifyOtp } from '../../utils/otpService';
 import { MonnifyReservedAccountOptions, monnifyService } from '../../utils/paymentService';
 import { Attendant, IAttendant } from '../../models/hubAttendant';
@@ -70,6 +70,12 @@ export const signup = async (req: Request, res: Response) => {
 
     const salt = bcrypt.genSaltSync(10);
     const hashedPwd = bcrypt.hashSync(password, salt);
+
+    // Send 6 digit code to the email
+    const emailSent = await createAndSendOtp(fullName, email, 'signup');
+
+    if (emailSent.includes('not')) return resSender(res, 400, 'fail', 'Email not sent, pls try again!');
+
     userMap.set(email, {
       email,
       password: hashedPwd,
@@ -79,9 +85,6 @@ export const signup = async (req: Request, res: Response) => {
       emailVerified: false,
       hub: undefined,
     });
-
-    // Send 6 digit code to the email
-    const emaialSent = await createAndSendOtp(fullName, email, 'signup');
 
     return resSender(res, 201, 'success', 'Email Sent, verify code next!');
   } catch (error: any) {
@@ -98,7 +101,7 @@ export const sendCode = async (req: Request, res: Response) => {
     const { email, reason } = req.body;
     const { error } = Joi.object({
       email: validationSchema.email,
-      reason: validationSchema.reason.disallow('signup'),
+      reason: validationSchema.reason, //.disallow('signup'),
     }).validate(req.body);
     if (error) return resSender(res, 400, 'fail', error.details[0].message);
 
@@ -117,6 +120,9 @@ export const sendCode = async (req: Request, res: Response) => {
     }
 
     const emailSent = await createAndSendOtp(existingMail.name, existingMail.email, reason);
+
+    if (emailSent.includes('not'))
+      return resSender(res, 400, 'fail', 'Email not sent, pls try again!');
 
     return resSender(
       res,
@@ -561,5 +567,76 @@ export const getAccount = async (identifier: string, id: boolean = false) => {
     return account;
   } catch (error) {
     throw error;
+  }
+};
+
+/**
+ * Refresh access token using refresh token
+ * Refresh token can come from cookies or request body
+ */
+export const refreshAccessToken = async (req: Request, res: Response) => {
+  try {
+    // Get refresh token from cookies or request body
+    // const refreshToken = req.cookies?.rfst_tkn || req.body?.refreshToken;
+    const refreshToken = getCookies(req, 'rfst_tkn') || req.body?.refreshToken;
+    console.log('Refresh token: ', refreshToken);
+
+    if (!refreshToken) {
+      return resSender(res, 401, 'fail', 'Refresh token is required');
+    }
+
+    // Verify the refresh token
+    const decoded: any = verifyToken(refreshToken, jwtRefresh);
+    if (!decoded || !decoded.userId) {
+      return resSender(res, 401, 'fail', 'Invalid refresh token');
+    }
+
+    // Verify user still exists
+    let user = await getAccount(decoded.userId, true);
+    if (!user) return resSender(res, 401, 'fail', 'Account not found');
+
+    // Generate new access token
+    const payload = {
+      userId: user._id.toString(),
+      email: user.email,
+      // role: user.role
+    };
+
+    const [newAccessToken, newRefreshToken] = await Promise.all([
+      generateToken(payload, jwtAccess, {
+        expiresIn: '10m',
+      }),
+      generateToken(payload, jwtRefresh, {
+        expiresIn: '1d',
+      }),
+    ]);
+
+    // Generate new refresh token (rotating refresh tokens)
+    // This improves security by limiting token lifetime
+    // const newRefreshToken = generateToken(payload, jwtRefresh, {
+    //   expiresIn: '1d',
+    // });
+
+    // console.log('Refresh done, new token: ', { newAccessToken, newRefreshToken });
+
+    // Save new refresh token to cookies
+    await saveCookies(res, 'rfst_tkn', newRefreshToken, 1 * 24 * 60 * 60 * 1000); // 1 day in milliseconds
+
+    return resSender(res, 200, 'success', 'Token refreshed successfully', null, {
+      accessToken: newAccessToken,
+      //   refreshToken: newRefreshToken,
+    });
+  } catch (error: any) {
+    console.error('Error refreshing token:', error);
+
+    if (error.name === 'TokenExpiredError') {
+      return resSender(res, 401, 'fail', 'Refresh token has expired, please login again');
+    }
+
+    if (error.name === 'JsonWebTokenError') {
+      return resSender(res, 401, 'fail', 'Invalid refresh token');
+    }
+
+    return errorHandler(error, res, error.message || 'Failed to refresh token');
   }
 };

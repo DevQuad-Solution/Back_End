@@ -4,6 +4,7 @@ import {
   attendantSignin,
   getMe,
   onboarding,
+  refreshAccessToken,
   resetPassword,
   sendCode,
   signin,
@@ -39,5 +40,6 @@ route.post('/auth/verify-code', verifyCode);
 route.post('/auth/reset-password', resetPassword);
 route.get('/auth/me', authMiddleware, getMe);
 route.post('/auth/kyc', authMiddleware, upload.array('image'), uploadMiddleware, verifyKyc);
+route.post('/auth/refresh', refreshAccessToken);
 
 export default route;
