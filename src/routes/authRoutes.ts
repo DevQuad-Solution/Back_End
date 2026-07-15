@@ -15,6 +15,7 @@ import {
 import { authMiddleware } from '../middlewares/authMiddleware';
 import multer from 'multer';
 import { uploadMiddleware } from '../middlewares/uploadMiddleware';
+import { authRateLimit } from '../middlewares/rateLimiter';
 
 const route = Router();
 
@@ -29,6 +30,8 @@ const storage = multer.diskStorage({
 });
 
 export const upload = multer({ storage });
+
+route.use(authRateLimit)
 
 route.post('/auth/', signup);
 route.post('/auth/onboarding', onboarding);

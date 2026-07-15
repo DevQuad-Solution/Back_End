@@ -12,5 +12,5 @@ export const createRateLimiter = (windowMs: number, max: number) => {
 };
 
 // Rate limiters for different endpoints
-export const authRateLimit = createRateLimiter(15 * 60 * 1000, 10); // 10 requests per 15 minutes
-export const reqRateLimit = createRateLimiter(60 * 1000, 10); // 30 requests per minute
+export const authRateLimit = createRateLimiter(15 * 60 * 1000, 15); // 15 requests per 15 minutes
+export const reqRateLimit = createRateLimiter(60 * 1000, 30); // 30 requests per minute

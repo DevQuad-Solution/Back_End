@@ -6,8 +6,11 @@ import { config } from 'dotenv';
 config();
 
 // console.log('Open key: ', process.env.OPENAI_API_KEY);
+const openAIKEY = process.env.OPENAI_API_KEY;
+if (!openAIKEY) throw new Error('OPEN AI Key is missing!');
+
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: openAIKEY,
   maxRetries: 3,
   timeout: 30000,
 });

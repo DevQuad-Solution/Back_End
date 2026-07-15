@@ -34,8 +34,8 @@ useSocket(server);
 app.use(helmet(helmetConfig));
 
 app.use(cors(corsOptions));
-app.use(reqRateLimit);
 app.use(morgan('dev'));
+app.use(reqRateLimit);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
