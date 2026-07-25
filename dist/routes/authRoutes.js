@@ -9,6 +9,7 @@ const authControllers_1 = require("../controllers/auth/authControllers");
 const authMiddleware_1 = require("../middlewares/authMiddleware");
 const multer_1 = __importDefault(require("multer"));
 const uploadMiddleware_1 = require("../middlewares/uploadMiddleware");
+const rateLimiter_1 = require("../middlewares/rateLimiter");
 const route = (0, express_1.Router)();
 // Configure multer for file uploads
 const storage = multer_1.default.diskStorage({
@@ -20,6 +21,7 @@ const storage = multer_1.default.diskStorage({
     },
 });
 exports.upload = (0, multer_1.default)({ storage });
+route.use(rateLimiter_1.authRateLimit);
 route.post('/auth/', authControllers_1.signup);
 route.post('/auth/onboarding', authControllers_1.onboarding);
 route.post('/auth/signin', authControllers_1.signin);
@@ -30,4 +32,5 @@ route.post('/auth/verify-code', authControllers_1.verifyCode);
 route.post('/auth/reset-password', authControllers_1.resetPassword);
 route.get('/auth/me', authMiddleware_1.authMiddleware, authControllers_1.getMe);
 route.post('/auth/kyc', authMiddleware_1.authMiddleware, exports.upload.array('image'), uploadMiddleware_1.uploadMiddleware, authControllers_1.verifyKyc);
+route.post('/auth/refresh', authControllers_1.refreshAccessToken);
 exports.default = route;

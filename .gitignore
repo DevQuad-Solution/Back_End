@@ -8,3 +8,4 @@ temp/
 *.docx
 *.backup
 */public/api-payload-examples.json
+*.code-workspace

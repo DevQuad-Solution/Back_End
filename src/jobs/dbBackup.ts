@@ -14,7 +14,7 @@ async function performBackup() {
   const dbUri =
     'mongodb+srv://kolawoleakintayok_db_user:sFIVa6RgRnnGRlDm@slashit.hxy7wad.mongodb.net/?appName=slashit';
   // process.env.NODE_ENV === 'production' ? process.env.LIVE_MONGO_URI! : process.env.MONGODB_URI!;
-  console.log('URI: ', dbUri);
+  // console.log('URI: ', dbUri);
   if (!dbUri) {
     throw new Error('MongoDB URI is not defined');
   }
@@ -106,7 +106,7 @@ async function seedData() {
   }
   if (!att) {
     let { hashedPin, pin } = generatePin();
-    console.log('Att Pin: ', pin);
+    // console.log('Att Pin: ', pin);
     await Attendant.create({
       name: 'Attendant 1',
       email: 'attendant@slashit.com',

@@ -589,7 +589,7 @@ const fetchAllWaitlist = async (req, res) => {
 };
 exports.fetchAllWaitlist = fetchAllWaitlist;
 const generatePin = () => {
-    let pin = '567890'; //Math.floor(100000 + Math.random() * 900000).toString();
+    let pin = Math.floor(100000 + Math.random() * 900000).toString();
     const hashedPin = bcryptjs_1.default.hashSync(pin, bcryptjs_1.default.genSaltSync(15));
     return { hashedPin, pin };
 };

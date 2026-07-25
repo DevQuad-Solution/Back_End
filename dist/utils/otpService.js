@@ -39,7 +39,7 @@ const createAndSendOtp = async (name, email, reason = 'signup') => {
         await otpRecord.save();
         console.log('Code: ', verificationCode);
         const { emailContent, emailSubject } = (0, mailDataFormat_1.prepareMail)({ email, code: verificationCode }, reason);
-        let sent = false;
+        let sent = 'Email not sent';
         const emailData = {
             subject: emailSubject,
             message: emailContent,
@@ -48,14 +48,17 @@ const createAndSendOtp = async (name, email, reason = 'signup') => {
         };
         const data = await (0, emailService_1.sendMail)(emailData);
         // console.log('Data rec: ', data);
-        console.log('Email Sent');
-        sent = true;
+        console.log('Email sent');
+        if (data)
+            sent = 'Email sent';
+        else
+            sent = 'Email not sent';
         return sent;
     }
     catch (error) {
         // console.log('Error', error);
         console.log('Email not sent');
-        return false;
+        return 'Email not sent';
     }
 };
 exports.createAndSendOtp = createAndSendOtp;

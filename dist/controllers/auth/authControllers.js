@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getAccount = exports.verifyKyc = exports.resetPassword = exports.attendantSignin = exports.adminSignin = exports.signin = exports.onboarding = exports.verifyCode = exports.sendCode = exports.signup = exports.getMe = void 0;
+exports.refreshAccessToken = exports.getAccount = exports.verifyKyc = exports.resetPassword = exports.attendantSignin = exports.adminSignin = exports.signin = exports.onboarding = exports.verifyCode = exports.sendCode = exports.signup = exports.getMe = void 0;
 const responseService_1 = require("../../utils/responseService");
 const modifyResponse_1 = require("../../utils/modifyResponse");
 const joi_1 = __importDefault(require("joi"));
@@ -50,6 +50,10 @@ const signup = async (req, res) => {
             return (0, responseService_1.resSender)(res, 403, 'fail', 'Email already exists!');
         const salt = bcryptjs_1.default.genSaltSync(10);
         const hashedPwd = bcryptjs_1.default.hashSync(password, salt);
+        // Send 6 digit code to the email
+        const emailSent = await (0, otpService_1.createAndSendOtp)(fullName, email, 'signup');
+        if (emailSent.includes('not'))
+            return (0, responseService_1.resSender)(res, 400, 'fail', 'Email not sent, pls try again!');
         userMap.set(email, {
             email,
             password: hashedPwd,
@@ -59,8 +63,6 @@ const signup = async (req, res) => {
             emailVerified: false,
             hub: undefined,
         });
-        // Send 6 digit code to the email
-        const emaialSent = await (0, otpService_1.createAndSendOtp)(fullName, email, 'signup');
         return (0, responseService_1.resSender)(res, 201, 'success', 'Email Sent, verify code next!');
     }
     catch (error) {
@@ -77,7 +79,7 @@ const sendCode = async (req, res) => {
         const { email, reason } = req.body;
         const { error } = joi_1.default.object({
             email: validationSchema_1.default.email,
-            reason: validationSchema_1.default.reason.disallow('signup'),
+            reason: validationSchema_1.default.reason, //.disallow('signup'),
         }).validate(req.body);
         if (error)
             return (0, responseService_1.resSender)(res, 400, 'fail', error.details[0].message);
@@ -91,6 +93,8 @@ const sendCode = async (req, res) => {
             return (0, responseService_1.resSender)(res, 200, 'success', 'Verification Code will be sent to your mail, if it exists!');
         }
         const emailSent = await (0, otpService_1.createAndSendOtp)(existingMail.name, existingMail.email, reason);
+        if (emailSent.includes('not'))
+            return (0, responseService_1.resSender)(res, 400, 'fail', 'Email not sent, pls try again!');
         return (0, responseService_1.resSender)(res, 200, 'success', 'Verification Code will be sent to your mail, if it exists!');
     }
     catch (error) {
@@ -160,9 +164,8 @@ const onboarding = async (req, res) => {
             ...data,
             hub: hubId,
         };
-        const newUser = new account_1.Account(data);
-        await newUser.save();
-        console.log('User saved Done');
+        let newUser = new account_1.Account(data);
+        // Create dedicated account for user
         let accPayload = {
             accountReference: `user_${newUser._id.toString()}_email_${data.email}`,
             accountName: data.name,
@@ -178,15 +181,13 @@ const onboarding = async (req, res) => {
             accountRef: userAccDet.accountReference,
         };
         console.log('User acc: ', dbUserAccDet);
-        const updatedUser = await account_1.Account.findByIdAndUpdate(newUser._id, {
-            $set: { userAccountDetails: dbUserAccDet },
-        }, { returnDocument: 'after' });
-        if (!updatedUser)
-            return (0, responseService_1.resSender)(res, 400, 'fail', 'User onboarding failed');
+        newUser.userAccountDetails = dbUserAccDet;
+        await newUser.save();
+        console.log('User saved Done');
         // Generate a JWT token
         let payload = {
-            userId: updatedUser._id.toString(),
-            email: updatedUser.email,
+            userId: newUser._id.toString(),
+            email: newUser.email,
         };
         const [accessToken, refreshToken] = await Promise.all([
             (0, tokenService_1.generateToken)(payload, jwtAccess, {
@@ -198,7 +199,7 @@ const onboarding = async (req, res) => {
         ]);
         await (0, tokenService_1.saveCookies)(res, 'rfst_tkn', refreshToken);
         return (0, responseService_1.resSender)(res, 200, 'success', 'Onboarding complete', null, {
-            user: (0, modifyResponse_1.modifyUserResponse)(updatedUser),
+            user: (0, modifyResponse_1.modifyUserResponse)(newUser),
             accessToken,
         });
     }
@@ -488,3 +489,64 @@ const getAccount = async (identifier, id = false) => {
     }
 };
 exports.getAccount = getAccount;
+/**
+ * Refresh access token using refresh token
+ * Refresh token can come from cookies or request body
+ */
+const refreshAccessToken = async (req, res) => {
+    try {
+        // Get refresh token from cookies or request body
+        // const refreshToken = req.cookies?.rfst_tkn || req.body?.refreshToken;
+        const refreshToken = (0, tokenService_1.getCookies)(req, 'rfst_tkn') || req.body?.refreshToken;
+        console.log('Refresh token: ', refreshToken);
+        if (!refreshToken) {
+            return (0, responseService_1.resSender)(res, 401, 'fail', 'Refresh token is required');
+        }
+        // Verify the refresh token
+        const decoded = (0, tokenService_1.verifyToken)(refreshToken, jwtRefresh);
+        if (!decoded || !decoded.userId) {
+            return (0, responseService_1.resSender)(res, 401, 'fail', 'Invalid refresh token');
+        }
+        // Verify user still exists
+        let user = await (0, exports.getAccount)(decoded.userId, true);
+        if (!user)
+            return (0, responseService_1.resSender)(res, 401, 'fail', 'Account not found');
+        // Generate new access token
+        const payload = {
+            userId: user._id.toString(),
+            email: user.email,
+            // role: user.role
+        };
+        const [newAccessToken, newRefreshToken] = await Promise.all([
+            (0, tokenService_1.generateToken)(payload, jwtAccess, {
+                expiresIn: '10m',
+            }),
+            (0, tokenService_1.generateToken)(payload, jwtRefresh, {
+                expiresIn: '1d',
+            }),
+        ]);
+        // Generate new refresh token (rotating refresh tokens)
+        // This improves security by limiting token lifetime
+        // const newRefreshToken = generateToken(payload, jwtRefresh, {
+        //   expiresIn: '1d',
+        // });
+        // console.log('Refresh done, new token: ', { newAccessToken, newRefreshToken });
+        // Save new refresh token to cookies
+        await (0, tokenService_1.saveCookies)(res, 'rfst_tkn', newRefreshToken, 1 * 24 * 60 * 60 * 1000); // 1 day in milliseconds
+        return (0, responseService_1.resSender)(res, 200, 'success', 'Token refreshed successfully', null, {
+            accessToken: newAccessToken,
+            //   refreshToken: newRefreshToken,
+        });
+    }
+    catch (error) {
+        console.error('Error refreshing token:', error);
+        if (error.name === 'TokenExpiredError') {
+            return (0, responseService_1.resSender)(res, 401, 'fail', 'Refresh token has expired, please login again');
+        }
+        if (error.name === 'JsonWebTokenError') {
+            return (0, responseService_1.resSender)(res, 401, 'fail', 'Invalid refresh token');
+        }
+        return (0, responseService_1.errorHandler)(error, res, error.message || 'Failed to refresh token');
+    }
+};
+exports.refreshAccessToken = refreshAccessToken;

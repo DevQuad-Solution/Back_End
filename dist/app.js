@@ -55,6 +55,8 @@ dotenv_1.default.config();
 // Database backup
 require("./jobs/dbBackup");
 const helmet_2 = __importDefault(require("./config/helmet"));
+const dns_1 = __importDefault(require("dns"));
+process.env.NODE_ENV === 'development' && dns_1.default.setDefaultResultOrder('ipv4first');
 (0, radarJob_1.startRadarJob)();
 const app = (0, express_1.default)();
 const server = http_1.default.createServer(app);
@@ -64,8 +66,8 @@ const PORT = process.env.PORT || 5004;
 // Apply helmet with CSP that allows external resources
 app.use((0, helmet_1.default)(helmet_2.default));
 app.use((0, cors_1.default)(cors_2.default));
-app.use(rateLimiter_1.reqRateLimit);
 app.use((0, morgan_1.default)('dev'));
+app.use(rateLimiter_1.reqRateLimit);
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
 app.use(express_1.default.static(path_1.default.join(__dirname, 'public')));

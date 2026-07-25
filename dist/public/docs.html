@@ -533,6 +533,31 @@
               },
             },
           },
+          '/api/auth/refresh': {
+            post: {
+              tags: ['Auth'],
+              summary: 'Refresh access token',
+              description: 'Refresh accounts access token',
+              requestBody: {
+                required: false,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        refreshToken: { type: 'string', description: 'Users refresh token saved in cookies (Optional)' },
+                      },
+                      required: [],
+                    },
+                  },
+                },
+              },
+              responses: {
+                200: { description: 'Access token refreshed successfully' },
+                401: { description: 'Token Expired' },
+              },
+            },
+          },
 
           // ==================== AI RADAR ROUTES ====================
           '/api/ai/radar': {
@@ -2028,7 +2053,7 @@
             },
           },
           '/api/admin/waitlist': {
-            get:{
+            get: {
               tags: ['Waitlists'],
               summary: 'Fetch Waitlists',
               description: 'Fetch the waitlist with their information (Admin only)',
@@ -2037,8 +2062,8 @@
                 200: { description: 'Waitlists fetched successfully' },
                 403: { description: 'Insufficient Permission' },
               },
-            }
-          }
+            },
+          },
         },
       };
 

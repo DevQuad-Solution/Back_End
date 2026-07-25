@@ -10,7 +10,7 @@ const encryption_1 = require("./encryption");
 const platformSettings_1 = require("../models/platformSettings");
 const account_1 = require("../models/account");
 const nameMatch_1 = require("./nameMatch");
-const MONNIFY_API_BASE_URL = process.env.MONNIFY_API_BASE_URL || 'https://sandbox.monnify.com/api';
+const MONNIFY_API_BASE_URL = process.env.MONNIFY_API_BASE_URL || 'https://api.monnify.com/api';
 const MONNIFY_API_KEY = process.env.MONNIFY_API_KEY;
 const MONNIFY_SECRET_KEY = process.env.MONNIFY_SECRET_KEY;
 const MONNIFY_CONTRACT_CODE = process.env.MONNIFY_CONTRACT_CODE;
@@ -41,7 +41,7 @@ class MonnifyService {
             timeout: 30000,
             headers: { 'Content-Type': 'application/json' },
         });
-        this.NIN_VERIFICATION_COST = Number(process.env.NIN_VERIFICATION_COST ?? 200);
+        this.NIN_VERIFICATION_COST = Number(process.env.NIN_VERIFICATION_COST ?? 100);
     }
     get basicAuthHeader() {
         return `Basic ${(0, encryption_1.toBase64)(`${MONNIFY_API_KEY}:${MONNIFY_SECRET_KEY}`)}`;

@@ -194,10 +194,9 @@ export const onboarding = async (req: Request, res: Response) => {
       ...data,
       hub: hubId,
     };
-    const newUser = new Account(data);
-    await newUser.save();
-    console.log('User saved Done');
+    let newUser = new Account(data);
 
+    // Create dedicated account for user
     let accPayload: MonnifyReservedAccountOptions = {
       accountReference: `user_${newUser._id.toString()}_email_${data.email}`,
       accountName: data.name,
@@ -214,19 +213,15 @@ export const onboarding = async (req: Request, res: Response) => {
     };
     console.log('User acc: ', dbUserAccDet);
 
-    const updatedUser = await Account.findByIdAndUpdate(
-      newUser._id,
-      {
-        $set: { userAccountDetails: dbUserAccDet },
-      },
-      { returnDocument: 'after' },
-    );
-    if (!updatedUser) return resSender(res, 400, 'fail', 'User onboarding failed');
+    newUser.userAccountDetails = dbUserAccDet;
+
+    await newUser.save();
+    console.log('User saved Done');
 
     // Generate a JWT token
     let payload = {
-      userId: updatedUser._id.toString(),
-      email: updatedUser.email,
+      userId: newUser._id.toString(),
+      email: newUser.email,
     };
 
     const [accessToken, refreshToken] = await Promise.all([
@@ -241,7 +236,7 @@ export const onboarding = async (req: Request, res: Response) => {
     await saveCookies(res, 'rfst_tkn', refreshToken);
 
     return resSender(res, 200, 'success', 'Onboarding complete', null, {
-      user: modifyUserResponse(updatedUser),
+      user: modifyUserResponse(newUser),
       accessToken,
     });
   } catch (error: any) {

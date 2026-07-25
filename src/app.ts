@@ -20,6 +20,9 @@ dotenv.config();
 import './jobs/dbBackup';
 import helmetConfig from './config/helmet';
 import { initializeSettings } from './controllers/admin/settingsControllers';
+import dns from 'dns';
+
+process.env.NODE_ENV === 'development' && dns.setDefaultResultOrder('ipv4first');
 
 startRadarJob();
 
