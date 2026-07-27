@@ -551,7 +551,7 @@ const generateDedicatedAccount = async (user, userNIN) => {
         const userAccDet = await paymentService_1.monnifyService.createDedicatedAccount(accPayload);
         const dbUserAccDet = {
             bankName: userAccDet.accounts[0].bankName,
-            accountName: `MONNIFY / Slashit-${userAccDet.accounts[0].accountName}`,
+            accountName: `DevQuad Solutions-${userAccDet.accounts[0].accountName}`,
             accountNumber: userAccDet.accounts[0].accountNumber,
             accountRef: userAccDet.accountReference,
         };
