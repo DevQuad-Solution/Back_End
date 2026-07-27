@@ -165,23 +165,6 @@ const onboarding = async (req, res) => {
             hub: hubId,
         };
         let newUser = new account_1.Account(data);
-        // Create dedicated account for user
-        let accPayload = {
-            accountReference: `user_${newUser._id.toString()}_email_${data.email}`,
-            accountName: data.name,
-            customerEmail: data.email,
-            customerName: data.name,
-            currencyCode: 'NGN',
-        };
-        const userAccDet = await paymentService_1.monnifyService.createDedicatedAccount(accPayload);
-        const dbUserAccDet = {
-            bankName: userAccDet.accounts[0].bankName,
-            accountName: `MONNIFY / Slashit-${userAccDet.accountName}`,
-            accountNumber: userAccDet.accounts[0].accountNumber,
-            accountRef: userAccDet.accountReference,
-        };
-        console.log('User acc: ', dbUserAccDet);
-        newUser.userAccountDetails = dbUserAccDet;
         await newUser.save();
         console.log('User saved Done');
         // Generate a JWT token
@@ -425,8 +408,12 @@ const verifyKyc = async (req, res) => {
         const verificationResult = await paymentService_1.monnifyService.validateNinForUser(userId, nin, user.name, user.phone, image?.buffer, consent);
         console.log('verif result gotten');
         if (verificationResult.verified) {
+            // Generate dedicated account for user
+            const dbUserAccDet = await generateDedicatedAccount(user, nin);
             // Get updated user
-            const updatedUser = await account_1.Account.findById(userId);
+            const updatedUser = await account_1.Account.findByIdAndUpdate(userId, {
+                $set: { userAccountDetails: dbUserAccDet },
+            }, { returnDocument: 'after' });
             if (!updatedUser)
                 return (0, responseService_1.resSender)(res, 403, 'fail', 'Something went wrong!');
             return (0, responseService_1.resSender)(res, 200, 'success', 'KYC verification successful!', null, {
@@ -550,3 +537,28 @@ const refreshAccessToken = async (req, res) => {
     }
 };
 exports.refreshAccessToken = refreshAccessToken;
+const generateDedicatedAccount = async (user, userNIN) => {
+    try {
+        // Create dedicated account for user
+        let accPayload = {
+            accountReference: `user_${user._id.toString()}_email_${user.email}`,
+            accountName: user.name,
+            customerEmail: user.email,
+            customerName: user.name,
+            currencyCode: 'NGN',
+            nin: userNIN,
+        };
+        const userAccDet = await paymentService_1.monnifyService.createDedicatedAccount(accPayload);
+        const dbUserAccDet = {
+            bankName: userAccDet.accounts[0].bankName,
+            accountName: `MONNIFY / Slashit-${userAccDet.accounts[0].accountName}`,
+            accountNumber: userAccDet.accounts[0].accountNumber,
+            accountRef: userAccDet.accountReference,
+        };
+        console.log('User acc: ', dbUserAccDet);
+        return dbUserAccDet;
+    }
+    catch (error) {
+        throw error;
+    }
+};

@@ -14,7 +14,7 @@ import {
 } from '../controllers/auth/authControllers';
 import { authMiddleware } from '../middlewares/authMiddleware';
 import multer from 'multer';
-import { uploadMiddleware } from '../middlewares/uploadMiddleware';
+import { singleImageUploadMiddleware, uploadMiddleware } from '../middlewares/uploadMiddleware';
 import { authRateLimit } from '../middlewares/rateLimiter';
 
 const route = Router();
@@ -31,7 +31,7 @@ const storage = multer.diskStorage({
 
 export const upload = multer({ storage });
 
-route.use(authRateLimit)
+route.use(authRateLimit);
 
 route.post('/auth/', signup);
 route.post('/auth/onboarding', onboarding);
@@ -42,7 +42,13 @@ route.post('/auth/code', sendCode);
 route.post('/auth/verify-code', verifyCode);
 route.post('/auth/reset-password', resetPassword);
 route.get('/auth/me', authMiddleware, getMe);
-route.post('/auth/kyc', authMiddleware, upload.array('image'), uploadMiddleware, verifyKyc);
+route.post(
+  '/auth/kyc',
+  authMiddleware,
+  upload.array('image'),
+  singleImageUploadMiddleware,
+  verifyKyc,
+);
 route.post('/auth/refresh', refreshAccessToken);
 
 export default route;

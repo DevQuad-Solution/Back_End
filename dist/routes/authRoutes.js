@@ -31,6 +31,6 @@ route.post('/auth/code', authControllers_1.sendCode);
 route.post('/auth/verify-code', authControllers_1.verifyCode);
 route.post('/auth/reset-password', authControllers_1.resetPassword);
 route.get('/auth/me', authMiddleware_1.authMiddleware, authControllers_1.getMe);
-route.post('/auth/kyc', authMiddleware_1.authMiddleware, exports.upload.array('image'), uploadMiddleware_1.uploadMiddleware, authControllers_1.verifyKyc);
+route.post('/auth/kyc', authMiddleware_1.authMiddleware, exports.upload.array('image'), uploadMiddleware_1.singleImageUploadMiddleware, authControllers_1.verifyKyc);
 route.post('/auth/refresh', authControllers_1.refreshAccessToken);
 exports.default = route;

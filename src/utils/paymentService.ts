@@ -22,7 +22,7 @@ export interface MonnifyReservedAccountOptions {
   customerName?: string;
   currencyCode?: 'NGN';
   preferredBank?: string;
-  bvn?: string;
+  nin?: string;
   narration?: string;
   getAllAvailableBanks?: boolean;
   metaData?: Record<string, unknown>;
@@ -158,10 +158,13 @@ export class MonnifyService {
     for (let attempt = 1; attempt <= attempts; attempt += 1) {
       try {
         return await fn();
-      } catch (error) {
+      } catch (error: any) {
         lastError = error;
 
         if (attempt === attempts || !this.isRetryableError(error)) {
+          console.log('Error 1: ', error.message);
+          console.log('Error 2: ', error);
+          // let errMsg = error.response.data.responseMessage
           throw error;
         }
 
@@ -213,9 +216,9 @@ export class MonnifyService {
           contractCode: MONNIFY_CONTRACT_CODE,
           customerEmail: options.customerEmail,
           customerName: options.customerName,
-          preferredBank: options.preferredBank,
+          preferredBank: options.preferredBank ?? ['50515'],
           narration: options.narration,
-          bvn: options.bvn,
+          nin: options.nin,
           getAllAvailableBanks: options.getAllAvailableBanks ?? true,
           metaData: options.metaData,
         });
@@ -355,6 +358,7 @@ export class MonnifyService {
     let verificationResponse: MonnifyNinResponse;
     try {
       verificationResponse = await this.verifyNIN(nin);
+      console.log('Verification response: ', verificationResponse);
     } catch (error: any) {
       // Refund the user if API fails
       await Account.findByIdAndUpdate(userId, {

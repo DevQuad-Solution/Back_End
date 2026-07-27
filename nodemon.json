@@ -2,7 +2,7 @@
   "watch": ["src"],
   "ext": "ts",
   "ignore": ["src/**/*.spec.ts"],
-  "exec": "ts-node --dns-result-order=ipv4first src/app.ts",
+  "exec": "ts-node src/app.ts",
   "env": {
     "NODE_ENV": "development"
   }

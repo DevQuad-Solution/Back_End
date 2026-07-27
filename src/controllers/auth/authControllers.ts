@@ -74,7 +74,8 @@ export const signup = async (req: Request, res: Response) => {
     // Send 6 digit code to the email
     const emailSent = await createAndSendOtp(fullName, email, 'signup');
 
-    if (emailSent.includes('not')) return resSender(res, 400, 'fail', 'Email not sent, pls try again!');
+    if (emailSent.includes('not'))
+      return resSender(res, 400, 'fail', 'Email not sent, pls try again!');
 
     userMap.set(email, {
       email,
@@ -195,25 +196,6 @@ export const onboarding = async (req: Request, res: Response) => {
       hub: hubId,
     };
     let newUser = new Account(data);
-
-    // Create dedicated account for user
-    let accPayload: MonnifyReservedAccountOptions = {
-      accountReference: `user_${newUser._id.toString()}_email_${data.email}`,
-      accountName: data.name,
-      customerEmail: data.email,
-      customerName: data.name,
-      currencyCode: 'NGN',
-    };
-    const userAccDet = await monnifyService.createDedicatedAccount(accPayload);
-    const dbUserAccDet = {
-      bankName: userAccDet.accounts![0].bankName,
-      accountName: `MONNIFY / Slashit-${userAccDet.accountName}`,
-      accountNumber: userAccDet.accounts![0].accountNumber,
-      accountRef: userAccDet.accountReference,
-    };
-    console.log('User acc: ', dbUserAccDet);
-
-    newUser.userAccountDetails = dbUserAccDet;
 
     await newUser.save();
     console.log('User saved Done');
@@ -496,8 +478,16 @@ export const verifyKyc = async (req: Request, res: Response) => {
     console.log('verif result gotten');
 
     if (verificationResult.verified) {
+      // Generate dedicated account for user
+      const dbUserAccDet = await generateDedicatedAccount(user, nin);
       // Get updated user
-      const updatedUser = await Account.findById(userId);
+      const updatedUser = await Account.findByIdAndUpdate(
+        userId,
+        {
+          $set: { userAccountDetails: dbUserAccDet },
+        },
+        { returnDocument: 'after' },
+      );
       if (!updatedUser) return resSender(res, 403, 'fail', 'Something went wrong!');
 
       return resSender(res, 200, 'success', 'KYC verification successful!', null, {
@@ -633,5 +623,30 @@ export const refreshAccessToken = async (req: Request, res: Response) => {
     }
 
     return errorHandler(error, res, error.message || 'Failed to refresh token');
+  }
+};
+
+const generateDedicatedAccount = async (user: IAccount, userNIN: string) => {
+  try {
+    // Create dedicated account for user
+    let accPayload: MonnifyReservedAccountOptions = {
+      accountReference: `user_${user._id.toString()}_email_${user.email}`,
+      accountName: user.name,
+      customerEmail: user.email,
+      customerName: user.name,
+      currencyCode: 'NGN',
+      nin: userNIN,
+    };
+    const userAccDet = await monnifyService.createDedicatedAccount(accPayload);
+    const dbUserAccDet = {
+      bankName: userAccDet.accounts![0].bankName,
+      accountName: `MONNIFY / Slashit-${userAccDet.accounts![0].accountName}`,
+      accountNumber: userAccDet.accounts![0].accountNumber,
+      accountRef: userAccDet.accountReference,
+    };
+    console.log('User acc: ', dbUserAccDet);
+    return dbUserAccDet;
+  } catch (error) {
+    throw error;
   }
 };

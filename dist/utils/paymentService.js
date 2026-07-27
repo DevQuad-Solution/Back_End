@@ -73,6 +73,9 @@ class MonnifyService {
             catch (error) {
                 lastError = error;
                 if (attempt === attempts || !this.isRetryableError(error)) {
+                    console.log('Error 1: ', error.message);
+                    console.log('Error 2: ', error);
+                    // let errMsg = error.response.data.responseMessage
                     throw error;
                 }
                 const backoff = initialDelay * Math.pow(2, attempt - 1);
@@ -111,9 +114,9 @@ class MonnifyService {
                 contractCode: MONNIFY_CONTRACT_CODE,
                 customerEmail: options.customerEmail,
                 customerName: options.customerName,
-                preferredBank: options.preferredBank,
+                preferredBank: options.preferredBank ?? ['50515'],
                 narration: options.narration,
-                bvn: options.bvn,
+                nin: options.nin,
                 getAllAvailableBanks: options.getAllAvailableBanks ?? true,
                 metaData: options.metaData,
             });
@@ -203,6 +206,7 @@ class MonnifyService {
         let verificationResponse;
         try {
             verificationResponse = await this.verifyNIN(nin);
+            console.log('Verification response: ', verificationResponse);
         }
         catch (error) {
             // Refund the user if API fails
