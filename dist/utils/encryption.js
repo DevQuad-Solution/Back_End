@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.encrypt = encrypt;
 exports.decrypt = decrypt;
+exports.isEncryptedTextMatch = isEncryptedTextMatch;
 exports.toBase64 = toBase64;
 exports.base64ToString = base64ToString;
 const crypto_1 = __importDefault(require("crypto"));
@@ -27,6 +28,18 @@ function decrypt(encryptedData) {
     let decrypted = decipher.update(encrypted, 'hex', 'utf8');
     decrypted += decipher.final('utf8');
     return decrypted;
+}
+function isEncryptedTextMatch(plainText, encryptedData) {
+    if (!plainText || !encryptedData)
+        return false;
+    try {
+        const normalizedPlainText = plainText.replace(/\s+/g, '').trim();
+        const normalizedEncryptedText = decrypt(encryptedData).replace(/\s+/g, '').trim();
+        return normalizedEncryptedText === normalizedPlainText;
+    }
+    catch (error) {
+        return false;
+    }
 }
 function toBase64(input) {
     const originalString = input;

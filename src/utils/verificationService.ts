@@ -2,7 +2,7 @@ import axios from 'axios';
 import { Account, KycStatus } from '../models/account';
 import { Schema, Types } from 'mongoose';
 import { PlatformSettings } from '../models/platformSettings';
-import { encrypt } from './encryption';
+import { encrypt, isEncryptedTextMatch } from './encryption';
 import { doNamesMatch } from './nameMatch';
 
 const NIN_API_BASE_URL = process.env.NIN_API_BASE_URL || 'https://checkmyninbvn.com.ng/api';
@@ -133,6 +133,19 @@ export const verifyNINForUser = async (
   const existingUser = await Account.findById(userId);
   if (existingUser?.kyc?.status === KycStatus.VERIFIED) {
     throw new Error('User is already KYC verified');
+  }
+
+  const duplicateNinUsers = await Account.find({
+    _id: { $ne: userId },
+    'kyc.nin': { $exists: true, $ne: null },
+  }).select('_id kyc.nin');
+
+  const ninAlreadyRegistered = duplicateNinUsers.some((account) =>
+    isEncryptedTextMatch(nin, account.kyc?.nin),
+  );
+
+  if (ninAlreadyRegistered) {
+    throw new Error('This NIN is already registered with another account');
   }
 
   // Deduct verification cost

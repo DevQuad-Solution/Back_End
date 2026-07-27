@@ -197,6 +197,14 @@ class MonnifyService {
         if (existingUser?.kyc?.status === account_1.KycStatus.VERIFIED) {
             throw new Error('User is already KYC verified');
         }
+        const duplicateNinUsers = await account_1.Account.find({
+            _id: { $ne: userId },
+            'kyc.nin': { $exists: true, $ne: null },
+        }).select('_id kyc.nin');
+        const ninAlreadyRegistered = duplicateNinUsers.some((account) => (0, encryption_1.isEncryptedTextMatch)(nin, account.kyc?.nin));
+        if (ninAlreadyRegistered) {
+            throw new Error('This NIN is already registered with another account');
+        }
         // Deduct verification cost
         const user = await account_1.Account.findOneAndUpdate({ _id: userId, walletBalance: { $gte: this.NIN_VERIFICATION_COST } }, { $inc: { walletBalance: -this.NIN_VERIFICATION_COST } }, { returnDocument: 'after' });
         if (!user) {

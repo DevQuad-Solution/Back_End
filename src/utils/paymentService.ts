@@ -1,6 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import crypto from 'crypto';
-import { encrypt, toBase64 } from './encryption';
+import { encrypt, isEncryptedTextMatch, toBase64 } from './encryption';
 import { PlatformSettings } from '../models/platformSettings';
 import { Account, KycStatus } from '../models/account';
 import { Types } from 'mongoose';
@@ -341,6 +341,19 @@ export class MonnifyService {
     const existingUser = await Account.findById(userId);
     if (existingUser?.kyc?.status === KycStatus.VERIFIED) {
       throw new Error('User is already KYC verified');
+    }
+
+    const duplicateNinUsers = await Account.find({
+      _id: { $ne: userId },
+      'kyc.nin': { $exists: true, $ne: null },
+    }).select('_id kyc.nin');
+
+    const ninAlreadyRegistered = duplicateNinUsers.some((account) =>
+      isEncryptedTextMatch(nin, account.kyc?.nin),
+    );
+
+    if (ninAlreadyRegistered) {
+      throw new Error('This NIN is already registered with another account');
     }
 
     // Deduct verification cost

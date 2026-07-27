@@ -6,6 +6,7 @@ import { trackedCompletion } from './openai';
 import { addNotification } from '../../utils/notificationService';
 import { TransactionHistory as Transaction } from '../../models/transaction';
 import { Types } from 'mongoose';
+import { isEncryptedTextMatch } from '../encryption';
 
 const redisUrl = process.env.REDIS_URL?.replace(/^['"]|['"]$/g, '');
 const fraudQueue = new Bull('fraud-analysis', redisUrl!);
@@ -25,8 +26,13 @@ export const runLayer1 = async (userId: string, trigger: string, context: Layer1
 
   // Rule: duplicate NIN
   if (trigger === 'kyc_submit' && context.nin) {
-    const existing = await Account.findOne({ 'kyc.nin': context.nin, _id: { $ne: userId } });
-    if (existing) flags.push('duplicate_nin');
+    const existing = await Account.find({
+      _id: { $ne: userId },
+      'kyc.nin': { $exists: true, $ne: null },
+    }).select('_id kyc.nin');
+
+    const duplicateNin = existing.some((account) => isEncryptedTextMatch(context.nin!, account.kyc?.nin));
+    if (duplicateNin) flags.push('duplicate_nin');
   }
 
   // Rule: rapid fund + withdraw

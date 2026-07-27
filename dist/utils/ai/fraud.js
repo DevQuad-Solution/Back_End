@@ -12,6 +12,7 @@ const openai_1 = require("./openai");
 const notificationService_1 = require("../../utils/notificationService");
 const transaction_1 = require("../../models/transaction");
 const mongoose_1 = require("mongoose");
+const encryption_1 = require("../encryption");
 const redisUrl = process.env.REDIS_URL?.replace(/^['"]|['"]$/g, '');
 const fraudQueue = new bull_1.default('fraud-analysis', redisUrl);
 exports.fraudQueue = fraudQueue;
@@ -22,8 +23,12 @@ const runLayer1 = async (userId, trigger, context) => {
         return flags;
     // Rule: duplicate NIN
     if (trigger === 'kyc_submit' && context.nin) {
-        const existing = await account_1.Account.findOne({ 'kyc.nin': context.nin, _id: { $ne: userId } });
-        if (existing)
+        const existing = await account_1.Account.find({
+            _id: { $ne: userId },
+            'kyc.nin': { $exists: true, $ne: null },
+        }).select('_id kyc.nin');
+        const duplicateNin = existing.some((account) => (0, encryption_1.isEncryptedTextMatch)(context.nin, account.kyc?.nin));
+        if (duplicateNin)
             flags.push('duplicate_nin');
     }
     // Rule: rapid fund + withdraw

@@ -26,6 +26,18 @@ export function decrypt(encryptedData: string): string {
   return decrypted;
 }
 
+export function isEncryptedTextMatch(plainText: string, encryptedData?: string): boolean {
+  if (!plainText || !encryptedData) return false;
+
+  try {
+    const normalizedPlainText = plainText.replace(/\s+/g, '').trim();
+    const normalizedEncryptedText = decrypt(encryptedData).replace(/\s+/g, '').trim();
+    return normalizedEncryptedText === normalizedPlainText;
+  } catch (error) {
+    return false;
+  }
+}
+
 export function toBase64(input: string) {
   const originalString: string = input;
 
