@@ -4,7 +4,10 @@ const express_1 = require("express");
 const aiControllers_1 = require("../controllers/ai/aiControllers");
 const authMiddleware_1 = require("../middlewares/authMiddleware");
 const roleMiddleware_1 = require("../middlewares/roleMiddleware");
+const rateLimiter_1 = require("../middlewares/rateLimiter");
 const router = (0, express_1.Router)();
+// Rate limit AI endpoints (user + admin)
+router.use(rateLimiter_1.aiRateLimit);
 // ── User-facing ────────────────────────────────────────────
 router.get('/ai/radar', authMiddleware_1.authMiddleware, aiControllers_1.getRadarByUser);
 // ── Admin: Fraud ───────────────────────────────────────────

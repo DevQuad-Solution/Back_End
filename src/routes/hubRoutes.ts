@@ -8,8 +8,12 @@ import {
   fetchHubRatings,
   rateHub,
 } from '../controllers/hub/hubControllers';
+import { hubRateLimit } from '../middlewares/rateLimiter';
 
 const route = Router();
+
+// Apply rate limit for hub lookups
+route.use(hubRateLimit);
 
 route.get('/hub/', fetchStates);
 route.get('/hub/:state', fetchCitiesByState);

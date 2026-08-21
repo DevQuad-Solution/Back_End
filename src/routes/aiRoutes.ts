@@ -14,8 +14,12 @@ import {
 } from '../controllers/ai/aiControllers';
 import { authMiddleware } from '../middlewares/authMiddleware';
 import { requireRole } from '../middlewares/roleMiddleware';
+import { aiRateLimit } from '../middlewares/rateLimiter';
 
 const router = Router();
+
+// Rate limit AI endpoints (user + admin)
+router.use(aiRateLimit);
 
 // ── User-facing ────────────────────────────────────────────
 router.get('/ai/radar', authMiddleware, getRadarByUser);

@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { authMiddleware } from '../middlewares/authMiddleware';
 import { requireRole } from '../middlewares/roleMiddleware';
+import { adminRateLimit } from '../middlewares/rateLimiter';
 import {
   fetchAllUsers,
   searchUsers,
@@ -39,6 +40,9 @@ import {
 } from '../controllers/admin/settingsControllers';
 
 const route = Router();
+
+// Apply admin-specific rate limits
+route.use(adminRateLimit);
 
 // User Management Routes
 route.get('/admin/users', authMiddleware, requireRole('admin'), fetchAllUsers);

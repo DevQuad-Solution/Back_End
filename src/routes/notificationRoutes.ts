@@ -6,8 +6,12 @@ import {
   fetchNotificationForUser,
   saveWaitList,
 } from '../controllers/notification/notificationController';
+import { notificationRateLimit } from '../middlewares/rateLimiter';
 
 const route = Router();
+
+// Rate limit notification-related endpoints
+route.use(notificationRateLimit);
 
 // Admin route - fetch all notifications in the system
 route.get('/notifications', authMiddleware, requireRole('admin'), fetchAllNotifications);

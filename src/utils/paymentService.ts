@@ -76,7 +76,7 @@ export interface MonnifyNinResponse {
 export interface KYCVerificationResult {
   verified: boolean;
   chargedAmount: number;
-  walletBalance: number;
+  // walletBalance: number;
   apiResponse: MonnifyNinResponse;
   matches: {
     name: boolean;
@@ -356,16 +356,16 @@ export class MonnifyService {
       throw new Error('This NIN is already registered with another account');
     }
 
-    // Deduct verification cost
-    const user = await Account.findOneAndUpdate(
-      { _id: userId, walletBalance: { $gte: this.NIN_VERIFICATION_COST } },
-      { $inc: { walletBalance: -this.NIN_VERIFICATION_COST } },
-      { returnDocument: 'after' },
-    );
+    // // Deduct verification cost
+    // const user = await Account.findOneAndUpdate(
+    //   { _id: userId, walletBalance: { $gte: this.NIN_VERIFICATION_COST } },
+    //   { $inc: { walletBalance: -this.NIN_VERIFICATION_COST } },
+    //   { returnDocument: 'after' },
+    // );
 
-    if (!user) {
-      throw new Error('Insufficient wallet balance for NIN verification');
-    }
+    // if (!user) {
+    //   throw new Error('Insufficient wallet balance for NIN verification');
+    // }
 
     // Call NIN verification API
     let verificationResponse: MonnifyNinResponse;
@@ -373,10 +373,10 @@ export class MonnifyService {
       verificationResponse = await this.verifyNIN(nin);
       console.log('Verification response: ', verificationResponse);
     } catch (error: any) {
-      // Refund the user if API fails
-      await Account.findByIdAndUpdate(userId, {
-        $inc: { walletBalance: this.NIN_VERIFICATION_COST },
-      });
+      // // Refund the user if API fails
+      // await Account.findByIdAndUpdate(userId, {
+      //   $inc: { walletBalance: this.NIN_VERIFICATION_COST },
+      // });
       throw new Error(error.response?.data?.message || 'NIN verification service unavailable');
     }
 
@@ -432,7 +432,7 @@ export class MonnifyService {
     return {
       verified: isVerified,
       chargedAmount: this.NIN_VERIFICATION_COST,
-      walletBalance: user.walletBalance,
+      // walletBalance: user.walletBalance,
       apiResponse: verificationResponse,
       matches: {
         name: nameMatch,

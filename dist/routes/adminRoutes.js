@@ -3,9 +3,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const authMiddleware_1 = require("../middlewares/authMiddleware");
 const roleMiddleware_1 = require("../middlewares/roleMiddleware");
+const rateLimiter_1 = require("../middlewares/rateLimiter");
 const adminControllers_1 = require("../controllers/admin/adminControllers");
 const settingsControllers_1 = require("../controllers/admin/settingsControllers");
 const route = (0, express_1.Router)();
+// Apply admin-specific rate limits
+route.use(rateLimiter_1.adminRateLimit);
 // User Management Routes
 route.get('/admin/users', authMiddleware_1.authMiddleware, (0, roleMiddleware_1.requireRole)('admin'), adminControllers_1.fetchAllUsers);
 route.get('/admin/users/search', authMiddleware_1.authMiddleware, (0, roleMiddleware_1.requireRole)('admin'), adminControllers_1.searchUsers);

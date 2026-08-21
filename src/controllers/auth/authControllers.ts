@@ -493,7 +493,7 @@ export const verifyKyc = async (req: Request, res: Response) => {
       return resSender(res, 200, 'success', 'KYC verification successful!', null, {
         verified: true,
         kycStatus: KycStatus.VERIFIED,
-        walletBalance: verificationResult.walletBalance,
+        // walletBalance: verificationResult.walletBalance,
         verificationDetails: {
           nameMatch: verificationResult.matches.name,
           phoneMatch: verificationResult.matches.phone,
@@ -511,7 +511,7 @@ export const verifyKyc = async (req: Request, res: Response) => {
         {
           verified: false,
           kycStatus: KycStatus.REJECTED,
-          walletBalance: verificationResult.walletBalance,
+          // walletBalance: verificationResult.walletBalance,
           verificationDetails: {
             nameMatch: verificationResult.matches.name,
             phoneMatch: verificationResult.matches.phone,

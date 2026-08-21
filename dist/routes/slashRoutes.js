@@ -3,7 +3,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const slashControllers_1 = require("../controllers/slash/slashControllers");
 const authMiddleware_1 = require("../middlewares/authMiddleware");
+const rateLimiter_1 = require("../middlewares/rateLimiter");
 const route = (0, express_1.Router)();
+// Apply rate limits for slash endpoints
+route.use(rateLimiter_1.slashRateLimit);
 route.get('/slash/', authMiddleware_1.authMiddleware, slashControllers_1.fetchSlashes);
 route.get('/slash/search', authMiddleware_1.authMiddleware, slashControllers_1.searchSlash);
 route.post('/slash/', authMiddleware_1.authMiddleware, slashControllers_1.createSlash);

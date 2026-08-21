@@ -419,7 +419,7 @@ const verifyKyc = async (req, res) => {
             return (0, responseService_1.resSender)(res, 200, 'success', 'KYC verification successful!', null, {
                 verified: true,
                 kycStatus: account_1.KycStatus.VERIFIED,
-                walletBalance: verificationResult.walletBalance,
+                // walletBalance: verificationResult.walletBalance,
                 verificationDetails: {
                     nameMatch: verificationResult.matches.name,
                     phoneMatch: verificationResult.matches.phone,
@@ -432,7 +432,7 @@ const verifyKyc = async (req, res) => {
             return (0, responseService_1.resSender)(res, 400, 'fail', 'KYC verification failed. Please ensure your NIN details match your profile information.', null, {
                 verified: false,
                 kycStatus: account_1.KycStatus.REJECTED,
-                walletBalance: verificationResult.walletBalance,
+                // walletBalance: verificationResult.walletBalance,
                 verificationDetails: {
                     nameMatch: verificationResult.matches.name,
                     phoneMatch: verificationResult.matches.phone,

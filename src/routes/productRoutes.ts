@@ -6,8 +6,12 @@ import {
   addProducts,
   changeProductStatus,
 } from '../controllers/product/productControllers';
+import { productRateLimit } from '../middlewares/rateLimiter';
 
 const route = Router();
+
+// Apply product-specific rate limits
+route.use(productRateLimit);
 
 // Public route - anyone can fetch products
 route.get('/products', fetchProducts);
