@@ -1,0 +1,37 @@
+name: Deploy Slashit Backend to Contabo VPS
+
+on:
+  push:
+    branches:
+      - development
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH to Contabo
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            # Navigate to the backend directory on the the VPS
+            cd /var/www/my_backend
+
+            # Fetch the latest code changes from github
+            git pull origin development
+
+            # Install dependencies
+            npm Install --omit=dev
+
+            # Build/Compile Typescript to Javascript
+            npm run build
+
+            # Restart the application using the PM2 name given earlier
+            pm2 restart slashit-backend
